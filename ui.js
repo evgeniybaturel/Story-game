@@ -68,7 +68,10 @@ function addMessage(type, text) {
     chatMessages.appendChild(msg);
     typeMessage(msg, text);
     chatMessages.scrollTop = chatMessages.scrollHeight;
-    window.state.messages.push({ type, text, timestamp: new Date().toISOString() });
+    
+    if (window.state && window.state.messages) {
+        window.state.messages.push({ type, text, timestamp: new Date().toISOString() });
+    }
     return msg;
 }
 
@@ -78,7 +81,10 @@ function addMessageInstant(type, text) {
     msg.textContent = text;
     chatMessages.appendChild(msg);
     chatMessages.scrollTop = chatMessages.scrollHeight;
-    window.state.messages.push({ type, text, timestamp: new Date().toISOString() });
+    
+    if (window.state && window.state.messages) {
+        window.state.messages.push({ type, text, timestamp: new Date().toISOString() });
+    }
     return msg;
 }
 
@@ -106,13 +112,15 @@ const modalBody = document.getElementById('modal-body');
 const modalClose = document.getElementById('modal-close');
 
 function openInventory() {
-    if (window.state.clues.length === 0) {
+    const clues = window.state && window.state.clues ? window.state.clues : [];
+    
+    if (clues.length === 0) {
         modalBody.innerHTML = '<div class="empty">Улики пока не найдены</div>';
     } else {
-        modalBody.innerHTML = window.state.clues.map((clue, i) => `
+        modalBody.innerHTML = clues.map((clue, i) => `
             <div class="clue-item">
                 <div class="clue-text">${i + 1}. ${clue}</div>
-                <div class="clue-meta">Найдено на шаге ${window.state.step}</div>
+                <div class="clue-meta">Найдено на шаге ${window.state ? window.state.step : 0}</div>
             </div>
         `).join('');
     }

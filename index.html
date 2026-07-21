@@ -30,6 +30,7 @@
                 <span class="chat-title">Дело</span>
                 <span class="chat-status" id="chat-status">● в процессе</span>
                 <span class="chat-step" id="chat-step">Шаг 0</span>
+                <button class="inventory-toggle" id="inventory-toggle">📦</button>
             </div>
 
             <div class="chat-messages" id="chat-messages">
@@ -40,23 +41,18 @@
                 <input type="text" id="chat-input" placeholder="Напишите действие или вопрос..." autocomplete="off">
                 <button class="send-btn" id="send-btn">→</button>
             </div>
-
-            <!-- 3 КНОПКИ-ФИЧИ -->
-            <div class="toolbar">
-                <button class="toolbar-btn" id="hint-btn" title="Подсказка">💡</button>
-                <button class="toolbar-btn" id="inventory-btn" title="Инвентарь">📦</button>
-                <button class="toolbar-btn" id="journal-btn" title="Журнал">📜</button>
-            </div>
         </div>
 
-        <!-- МОДАЛЬНОЕ ОКНО -->
+        <!-- МОДАЛЬНОЕ ОКНО (ИНВЕНТАРЬ) -->
         <div id="modal" class="modal hidden">
             <div class="modal-content">
                 <div class="modal-header">
-                    <span class="modal-title" id="modal-title">Инвентарь</span>
+                    <span class="modal-title">📦 Инвентарь</span>
                     <button class="modal-close" id="modal-close">✕</button>
                 </div>
-                <div class="modal-body" id="modal-body"></div>
+                <div class="modal-body" id="modal-body">
+                    <!-- Улики будут здесь -->
+                </div>
             </div>
         </div>
 

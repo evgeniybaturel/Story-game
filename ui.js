@@ -28,8 +28,7 @@ function showStartScreen() {
 // ОБНОВЛЕНИЕ UI
 // ============================================================
 
-function updateUI(step, status, color) {
-    document.getElementById('chat-step').textContent = `Шаг ${step}`;
+function updateUI(status, color) {
     document.getElementById('chat-status').textContent = `● ${status}`;
     document.getElementById('chat-status').style.color = color;
 }
@@ -120,7 +119,7 @@ function openInventory() {
         modalBody.innerHTML = clues.map((clue, i) => `
             <div class="clue-item">
                 <div class="clue-text">${i + 1}. ${clue}</div>
-                <div class="clue-meta">Найдено на шаге ${window.state ? window.state.step : 0}</div>
+                <div class="clue-meta">Найдено во время расследования</div>
             </div>
         `).join('');
     }

@@ -35,36 +35,26 @@ const copyBtn = $('copy-btn');
 const restartBtn = $('restart-btn');
 
 // ============================================================
-// УНИКАЛЬНЫЕ ЗАВЯЗКИ (запасные, если API не отвечает)
+// РАБОТА С КЛЮЧОМ
 // ============================================================
 
-const FALLBACK_OPENINGS = [
-    "Вы находите тело на скамейке в парке. В руке мужчины — клочок бумаги со словом 'ПЕРО'. Рядом — следы, ведущие в сторону старого кинотеатра.",
-    "На набережной вы замечаете странный свет. Подойдя ближе, вы видите открытый чемодан, полный старых фотографий. На одной из них — дата: сегодняшний день, но 50 лет назад.",
-    "Вход в парк перекрыт полицейской лентой. Охранник шепчет: 'Не ходите к фонтану. Там что-то нашли'. Вы слышите, как кто-то плачет в кустах.",
-    "Вы гуляете по пустынной улочке и замечаете, что все фонари на ней погасли. Кроме одного — под ним стоит человек в плаще и держит конверт с вашим именем.",
-    "В кафе официант случайно роняет записку: 'Они уже близко. Сожги это'. Вы поднимаете её и замечаете, что написана она вашим почерком.",
-    "Вы находите старую карту в книге, которую взяли в уличной библиотеке. На ней отмечено место, которого не существует, но вы точно знаете, где оно находится.",
-    "Ночью вам звонит неизвестный номер. Голос говорит: 'Ты должен прийти на стадион. Времени мало'. Когда вы приходите, стадион пуст, но на трибуне лежит ключ.",
-    "В новой квартире вы находите тайную комнату. Стены покрыты иероглифами, а на полу — свежие следы. Кто-то был здесь до вас.",
-    "На пляже волны выносят бутылку с запиской. Язык вам незнаком, но подпись — ваша. И дата — завтрашний день.",
-    "В метро незнакомец передаёт вам ключ и шепчет: 'Откроешь — изменишь всё'. Ключ подходит к ячейке камеры хранения на вокзале."
-];
-
-function getRandomOpening() {
-    return FALLBACK_OPENINGS[Math.floor(Math.random() * FALLBACK_OPENINGS.length)];
+function getApiKey() {
+    const input = document.getElementById('api-key');
+    const key = input ? input.value.trim() : '';
+    if (key) {
+        localStorage.setItem('groq_api_key', key);
+        return key;
+    }
+    return localStorage.getItem('groq_api_key') || '';
 }
 
-function getFallback() {
-    const fallbacks = [
-        'Вы замечаете что-то странное на земле. Следы ведут к старому фонарю, и там вы находите обрывок ткани с вышитой буквой "М".',
-        'Из кафе доносится разговор. Вы слышите голос, который говорит: "Она знала слишком много". Заходите внутрь и видите человека в красном пальто.',
-        'На земле вы находите ключ. Он подходит к двери старого особняка, который стоит на краю парка. Внутри слышны шаги.',
-        'Кинотеатр закрыт, но за углом вы видите открытое окно. На подоконнике лежит старый билет, и на нём есть отпечаток пальца.',
-        'Вдалеке вы видите фигуру, которая наблюдает за вами. Когда вы подходите ближе, она исчезает за углом.'
-    ];
-    return fallbacks[Math.floor(Math.random() * fallbacks.length)];
-}
+window.addEventListener('DOMContentLoaded', () => {
+    const saved = localStorage.getItem('groq_api_key');
+    if (saved) {
+        const input = document.getElementById('api-key');
+        if (input) input.value = saved;
+    }
+});
 
 // ============================================================
 // ВСПОМОГАТЕЛЬНЫЕ
@@ -95,11 +85,17 @@ function removeLastSystemMessage() {
 }
 
 // ============================================================
-// ОТПРАВКА ЗАПРОСА К POLLINATIONS (ИСПРАВЛЕННАЯ)
+// ЗАПРОС К GROQ
 // ============================================================
 
-function callAI(messages, callback) {
-    // Собираем контекст
+async function callGroq(messages, systemPrompt, callback) {
+    const apiKey = getApiKey();
+    
+    if (!apiKey) {
+        callback('❌ Ошибка: API-ключ не найден. Введите ключ на стартовом экране.');
+        return;
+    }
+
     const fullContext = messages
         .filter(m => m.type !== 'system')
         .map(m => `${m.type === 'ai' ? 'ИИ' : 'Игроки'}: ${m.text}`)
@@ -107,8 +103,6 @@ function callAI(messages, callback) {
 
     const lastUserMessage = messages.filter(m => m.type === 'user').pop();
     const userInput = lastUserMessage ? lastUserMessage.text : 'Начало расследования';
-
-    const systemPrompt = `Ты — ведущий детективной игры. Отвечай ТОЛЬКО ПОЛНЫМИ ПРЕДЛОЖЕНИЯМИ (2-4 предложения). Никогда не обрывай мысль. Добавляй детали: звуки, запахи, погоду. Не используй эмодзи.`;
 
     const userPrompt = `
 Ты — ведущий детективной игры для двух игроков.
@@ -121,48 +115,53 @@ ${fullContext}
 
 Сейчас игроки написали: "${userInput}"
 
-Ответь КРАТКО (2-4 предложения), но ПОЛНО. Развивай историю. Не обрывай мысль.
+Ответь КРАТКО (2-4 предложения), но ПОЛНО. Развивай историю. Не обрывай мысль. Добавляй атмосферные детали.
 `;
 
-    fetch('https://text.pollinations.ai/openai', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            messages: [
-                { role: 'system', content: systemPrompt },
-                { role: 'user', content: userPrompt }
-            ],
-            model: 'openai'
-        })
-    })
-    .then(response => {
-        console.log('Статус ответа:', response.status);
+    try {
+        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`
+            },
+            body: JSON.stringify({
+                model: 'llama-3.3-70b-versatile',
+                messages: [
+                    { role: 'system', content: systemPrompt || 'Ты — ведущий детективной игры. Отвечай ТОЛЬКО ПОЛНЫМИ ПРЕДЛОЖЕНИЯМИ (2-4 предложения). Никогда не обрывай мысль. Добавляй детали: звуки, запахи, погоду. Не используй эмодзи.' },
+                    { role: 'user', content: userPrompt }
+                ],
+                temperature: 0.85,
+                max_tokens: 250
+            })
+        });
+
         if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
+            const errorData = await response.json();
+            const errorMsg = errorData.error?.message || `HTTP ${response.status}`;
+            callback(`❌ Ошибка Groq: ${errorMsg}`);
+            return;
         }
-        return response.json();
-    })
-    .then(data => {
-        console.log('Ответ ИИ:', data);
+
+        const data = await response.json();
+        console.log('Groq ответ:', data);
+        
         let text = data.choices?.[0]?.message?.content?.trim();
         
         if (!text) {
-            throw new Error('Пустой ответ');
+            callback('❌ Ошибка: Groq вернул пустой ответ');
+            return;
         }
         
-        // Проверяем, не обрывается ли текст
         if (text.length > 0 && !text.endsWith('.') && !text.endsWith('!') && !text.endsWith('?')) {
             text += ' Продолжайте расследование.';
         }
         
         callback(text);
-    })
-    .catch(error => {
-        console.error('Ошибка:', error);
-        callback(getFallback());
-    });
+    } catch (error) {
+        console.error('Groq ошибка:', error);
+        callback(`❌ Ошибка: ${error.message || 'Неизвестная ошибка'}`);
+    }
 }
 
 // ============================================================
@@ -171,6 +170,12 @@ ${fullContext}
 
 function initGame() {
     console.log('🕵️ Детектив запускается...');
+    
+    const apiKey = getApiKey();
+    if (!apiKey) {
+        alert('❌ Введите API-ключ Groq в поле на стартовом экране.\nПолучить ключ можно на console.groq.com');
+        return;
+    }
     
     state.messages = [];
     state.storyId = Date.now();
@@ -198,29 +203,35 @@ function initGame() {
 Ответь ТОЛЬКО текстом (3-4 предложения).
 `;
 
-    fetch('https://text.pollinations.ai/openai', {
+    fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
         },
         body: JSON.stringify({
+            model: 'llama-3.3-70b-versatile',
             messages: [
                 { role: 'system', content: systemPrompt },
                 { role: 'user', content: userPrompt }
             ],
-            model: 'openai'
+            temperature: 0.85,
+            max_tokens: 200
         })
     })
     .then(response => {
-        console.log('Статус завязки:', response.status);
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        if (!response.ok) {
+            return response.json().then(err => {
+                throw new Error(err.error?.message || `HTTP ${response.status}`);
+            });
+        }
         return response.json();
     })
     .then(data => {
         let text = data.choices?.[0]?.message?.content?.trim();
         
         if (!text || text.length < 20) {
-            throw new Error('Пустой ответ');
+            throw new Error('Пустой или слишком короткий ответ');
         }
         
         state.opening = text;
@@ -236,18 +247,12 @@ function initGame() {
     })
     .catch(error => {
         console.error('Ошибка завязки:', error);
-        // Используем случайную запасную завязку
-        const fallback = getRandomOpening();
-        state.opening = fallback;
         removeLastSystemMessage();
-        addMessage('ai', fallback);
-        chatStatus.textContent = '● расследование';
-        chatStatus.style.color = '#34d399';
+        addSystemMessage(`❌ Ошибка: ${error.message}`);
+        chatStatus.textContent = '● ошибка';
+        chatStatus.style.color = '#ef4444';
         sendBtn.disabled = false;
         chatInput.disabled = false;
-        chatInput.focus();
-        state.step++;
-        saveState();
     });
 }
 
@@ -273,7 +278,19 @@ function sendMessage() {
         return;
     }
 
-    callAI(state.messages, (response) => {
+    const systemPrompt = 'Ты — ведущий детективной игры. Отвечай ТОЛЬКО ПОЛНЫМИ ПРЕДЛОЖЕНИЯМИ (2-4 предложения). Никогда не обрывай мысль. Добавляй детали: звуки, запахи, погоду. Не используй эмодзи.';
+
+    callGroq(state.messages, systemPrompt, (response) => {
+        if (response.startsWith('❌')) {
+            addSystemMessage(response);
+            sendBtn.disabled = false;
+            chatInput.disabled = false;
+            state.isGenerating = false;
+            chatStatus.textContent = '● ошибка';
+            chatStatus.style.color = '#ef4444';
+            return;
+        }
+        
         addMessage('ai', response);
         sendBtn.disabled = false;
         chatInput.disabled = false;
@@ -341,28 +358,45 @@ ${context}
 Ответь ТОЛЬКО текстом (3-5 предложений). Без эмодзи.
 `;
 
-    fetch('https://text.pollinations.ai/openai', {
+    const apiKey = getApiKey();
+    if (!apiKey) {
+        removeLastSystemMessage();
+        finalTitle.textContent = 'Ошибка';
+        finalStory.textContent = '❌ API-ключ не найден';
+        finalSteps.textContent = state.step;
+        showFinalScreen();
+        return;
+    }
+
+    fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
         },
         body: JSON.stringify({
+            model: 'llama-3.3-70b-versatile',
             messages: [
                 { role: 'system', content: systemPrompt },
                 { role: 'user', content: userPrompt }
             ],
-            model: 'openai'
+            temperature: 0.85,
+            max_tokens: 250
         })
     })
     .then(response => {
-        if (!response.ok) throw new Error('API error');
+        if (!response.ok) {
+            return response.json().then(err => {
+                throw new Error(err.error?.message || `HTTP ${response.status}`);
+            });
+        }
         return response.json();
     })
     .then(data => {
-        let text = data.choices?.[0]?.message?.content?.trim() || 'Дело остаётся нераскрытым. Но вы сделали всё, что могли.';
+        let text = data.choices?.[0]?.message?.content?.trim();
         
-        if (text.length > 0 && !text.endsWith('.') && !text.endsWith('!') && !text.endsWith('?')) {
-            text += ' Возможно, в другой раз вам повезёт больше.';
+        if (!text) {
+            throw new Error('Пустой ответ');
         }
         
         removeLastSystemMessage();
@@ -372,10 +406,10 @@ ${context}
         showFinalScreen();
     })
     .catch(error => {
-        console.error('Error:', error);
+        console.error('Финальная ошибка:', error);
         removeLastSystemMessage();
-        finalTitle.textContent = 'Дело раскрыто';
-        finalStory.textContent = 'Дело остаётся нераскрытым. Но вы сделали всё, что могли.';
+        finalTitle.textContent = 'Ошибка';
+        finalStory.textContent = `❌ ${error.message}`;
         finalSteps.textContent = state.step;
         showFinalScreen();
     });
@@ -521,4 +555,4 @@ if (localStorage.getItem('detective_chat_state')) {
 }
 
 console.log('🕵️ Детектив на прогулке загружен');
-console.log('🌐 Использует Pollinations.ai (модель: openai)');
+console.log('🤖 Использует Groq (модель: llama-3.3-70b-versatile)');

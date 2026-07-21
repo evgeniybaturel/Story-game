@@ -629,4 +629,70 @@ function loadState() {
         });
 
         updateActions(state.actions);
-        chatStatus.text
+        chatStatus.textContent = '● расследование';
+        chatStatus.style.color = '#34d399';
+        sendBtn.disabled = false;
+        chatInput.disabled = false;
+
+        showGameScreen();
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
+
+// ============================================================
+// КОПИРОВАНИЕ
+// ============================================================
+
+copyBtn.addEventListener('click', async () => {
+    const text = `${finalTitle.textContent}\n\n${finalStory.textContent}`;
+    try {
+        await navigator.clipboard.writeText(text);
+        copyBtn.textContent = 'Скопировано!';
+        setTimeout(() => copyBtn.textContent = 'Скопировать', 2000);
+    } catch {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        ta.remove();
+        copyBtn.textContent = 'Скопировано!';
+        setTimeout(() => copyBtn.textContent = 'Скопировать', 2000);
+    }
+});
+
+// ============================================================
+// ОБРАБОТЧИКИ
+// ============================================================
+
+startBtn.addEventListener('click', initGame);
+
+loadBtn.addEventListener('click', () => {
+    if (!loadState()) {
+        alert('Нет сохранённой игры');
+    }
+});
+
+sendBtn.addEventListener('click', sendMessage);
+
+chatInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        sendMessage();
+    }
+});
+
+restartBtn.addEventListener('click', showStartScreen);
+
+// ============================================================
+// АВТОЗАГРУЗКА
+// ============================================================
+
+if (localStorage.getItem('detective_chat_state')) {
+    loadBtn.style.display = 'block';
+}
+
+console.log('🕵️ Детектив на прогулке загружен');
+console.log('🤖 Использует Groq с печатью текста');

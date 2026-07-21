@@ -213,6 +213,7 @@ async function generateStory(){
 
     const prompt = detective
 
+?
 `
 Создай детективную игру.
 

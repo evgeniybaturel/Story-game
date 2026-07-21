@@ -1,5 +1,5 @@
 // ============================================================
-// GAME ENGINE v2.0
+// GAME ENGINE v2.1
 // Детектив на прогулке
 // ============================================================
 
@@ -10,7 +10,7 @@
 
 window.state = {
 
-    version: "2.0",
+    version: "2.1",
 
     messages: [],
 
@@ -23,50 +23,33 @@ window.state = {
     isFinished: false,
 
 
-    // Детектив
-
     case: {
 
         title: "",
-
         description: "",
-
         mystery: "",
-
         solution: "",
-
         genre: "",
-
         characters: [],
-
         locations: [],
-
         clues: []
 
     },
 
 
-    // Данетки
-
     danetki: {
 
         situation: "",
-
         solution: "",
-
         hint: "",
-
         facts: []
 
     },
 
 
-    // Прогресс
-
     progress: {
 
         actions: [],
-
         foundClues: []
 
     }
@@ -77,13 +60,15 @@ window.state = {
 
 
 // ============================================================
-// ВЫБОР РЕЖИМА
+// ПОЛУЧЕНИЕ РЕЖИМА
 // ============================================================
 
 function getSelectedMode(){
 
     const active =
-        document.querySelector(".mode-btn.active");
+    document.querySelector(
+        ".mode-btn.active"
+    );
 
 
     return active
@@ -96,13 +81,14 @@ function getSelectedMode(){
 
 
 // ============================================================
-// НОВАЯ ИГРА
+// СТАРТ ИГРЫ
 // ============================================================
 
 function initGame(){
 
 
-    const apiKey = getApiKey();
+    const apiKey =
+    getApiKey();
 
 
     if(!apiKey){
@@ -117,21 +103,21 @@ function initGame(){
 
 
 
-    state.messages = [];
+    state.messages=[];
 
-    state.storyId = Date.now();
-
-    state.isFinished = false;
-
-    state.isGenerating = false;
-
+    state.storyId =
+    Date.now();
 
     state.mode =
-        getSelectedMode();
+    getSelectedMode();
+
+    state.isGenerating=false;
+
+    state.isFinished=false;
 
 
 
-    state.case = {
+    state.case={
 
         title:"",
         description:"",
@@ -145,7 +131,8 @@ function initGame(){
     };
 
 
-    state.danetki = {
+
+    state.danetki={
 
         situation:"",
         solution:"",
@@ -155,7 +142,8 @@ function initGame(){
     };
 
 
-    state.progress = {
+
+    state.progress={
 
         actions:[],
         foundClues:[]
@@ -175,17 +163,21 @@ function initGame(){
     showGameScreen();
 
 
-    updateUI(
-        "создание дела...",
-        "#fbbf24"
-    );
-
 
     addSystemMessage(
         state.mode==="detective"
-        ? "ИИ создаёт расследование..."
-        : "ИИ придумывает данетку..."
+        ?
+        "🕵️ ИИ создаёт дело..."
+        :
+        "❓ ИИ придумывает данетку..."
     );
+
+
+    updateUI(
+        "создание",
+        "#fbbf24"
+    );
+
 
 
     generateStory();
@@ -195,68 +187,82 @@ function initGame(){
 
 
 
+
 // ============================================================
-// СОЗДАНИЕ ДЕЛА
+// СОЗДАНИЕ НОВОЙ ИСТОРИИ
 // ============================================================
+
 
 async function generateStory(){
 
 
     const apiKey =
-        getApiKey();
+    getApiKey();
 
 
-    const detective =
+
+    const isDetective =
     state.mode==="detective";
 
 
 
-    const prompt = detective
+    const prompt =
+    isDetective
 
 ?
-`
-Создай детективную игру.
 
-Верни JSON:
+`
+Ты ведущий детективной игры.
+
+Создай одно логичное расследование.
+
+Верни строго JSON:
 
 {
 "title":"",
 "description":"",
 "mystery":"",
 "genre":"",
+"solution":"",
 "characters":[],
 "locations":[],
-"solution":"",
 "clues":[
 {
 "name":"",
-"location":"",
-"secret":""
+"place":"",
+"meaning":""
 }
 ]
 }
 
 
-Правила:
+ВАЖНЫЕ ПРАВИЛА:
 
-- одна главная тайна;
-- максимум 5 персонажей;
-- максимум 4 места;
-- минимум 5 улик;
-- у каждой улики есть логическое место нахождения;
-- решение должно быть заранее определено;
-- не раскрывай решение в description.
+1. Игрок должен расследовать, а не читать рассказ.
+2. В description НЕ раскрывай решение.
+3. Решение должно объяснять ВСЁ.
+4. Должно быть минимум 5 настоящих улик.
+5. Каждая улика должна находиться в конкретном месте.
+6. Персонажи должны иметь мотивы.
+7. Не создавай невозможных событий.
 
-Описание должно дать игроку цель расследования.
+Пример:
+
+Плохо:
+"Произошло нечто странное."
+
+Хорошо:
+"В старом доме найдено письмо человека, который исчез неделю назад."
 `
 
 :
 
 `
-Создай данетку.
+Ты ведущий игры Данетки.
 
+Создай загадочную ситуацию.
 
-JSON:
+Верни JSON:
 
 {
 "situation":"",
@@ -268,10 +274,11 @@ JSON:
 
 Правила:
 
-- ситуация странная, но логичная;
-- разгадка объясняет всё;
-- факты должны позволять отвечать Да/Нет;
-- не должно быть противоречий.
+1. Ситуация должна быть короткой.
+2. Разгадка должна объяснять каждый факт.
+3. На вопросы игрока можно отвечать Да/Нет.
+4. Не должно быть противоречий.
+5. Игрок должен понимать, что именно нужно разгадать.
 `;
 
 
@@ -281,7 +288,9 @@ JSON:
 
         const response =
         await fetch(
+
         "https://api.groq.com/openai/v1/chat/completions",
+
         {
 
             method:"POST",
@@ -302,12 +311,13 @@ JSON:
                 model:
                 "llama-3.3-70b-versatile",
 
+
                 messages:[
 
                     {
                         role:"system",
                         content:
-                        "Ты генератор логических игр. Только JSON."
+                        "Ты создаёшь логические игры. Отвечай только JSON."
                     },
 
                     {
@@ -317,9 +327,11 @@ JSON:
 
                 ],
 
-                temperature:0.4,
 
-                max_tokens:700,
+                temperature:0.5,
+
+                max_tokens:900,
+
 
                 response_format:{
                     type:"json_object"
@@ -331,6 +343,17 @@ JSON:
 
 
 
+        if(!response.ok){
+
+            throw new Error(
+                "Ошибка API: "
+                +response.status
+            );
+
+        }
+
+
+
         const data =
         await response.json();
 
@@ -338,8 +361,10 @@ JSON:
 
         const result =
         JSON.parse(
-            data.choices[0]
-            .message.content
+            data
+            .choices[0]
+            .message
+            .content
         );
 
 
@@ -348,13 +373,13 @@ JSON:
 
 
 
-        if(detective){
+        if(isDetective){
 
 
-            state.case = {
+            state.case={
 
                 title:
-                result.title || "Дело",
+                result.title || "Новое дело",
 
                 description:
                 result.description || "",
@@ -380,9 +405,10 @@ JSON:
             };
 
 
+
             addMessage(
                 "ai",
-                result.description
+                state.case.description
             );
 
 
@@ -390,7 +416,7 @@ JSON:
         else{
 
 
-            state.danetki = {
+            state.danetki={
 
                 situation:
                 result.situation || "",
@@ -407,9 +433,10 @@ JSON:
             };
 
 
+
             addMessage(
                 "ai",
-                result.situation
+                state.danetki.situation
             );
 
         }
@@ -417,9 +444,14 @@ JSON:
 
 
         updateUI(
-            "расследование",
+            isDetective
+            ?
+            "расследование"
+            :
+            "загадка",
             "#34d399"
         );
+
 
 
         saveState();
@@ -429,42 +461,50 @@ JSON:
     catch(error){
 
 
-        console.error(error);
+        console.error(
+            error
+        );
 
 
         removeLastSystemMessage();
 
 
         addSystemMessage(
-            "❌ Ошибка создания игры: "
-            +error.message
+            "❌ Ошибка создания: "
+            +
+            error.message
         );
-
 
     }
 
 }
 
 // ============================================================
-// ОТПРАВКА ДЕЙСТВИЯ ИГРОКА
+// ОТПРАВКА ВОПРОСА ИГРОКА
 // ============================================================
+
 
 function sendMessage(){
 
 
-    if(state.isGenerating || state.isFinished)
+    if(
+        state.isGenerating ||
+        state.isFinished
+    )
         return;
 
 
 
     const input =
-        document.getElementById(
-            "chat-input"
-        );
+    document.getElementById(
+        "chat-input"
+    );
+
 
 
     const text =
-        input.value.trim();
+    input.value.trim();
+
 
 
     if(!text)
@@ -475,20 +515,25 @@ function sendMessage(){
     input.value="";
 
 
+
     addMessageInstant(
         "user",
         text
     );
 
 
-    state.progress.actions.push(text);
 
+    state.progress.actions.push(
+        text
+    );
+
+
+
+    state.isGenerating=true;
 
 
     setLoading(true);
 
-
-    state.isGenerating=true;
 
 
     updateUI(
@@ -498,52 +543,48 @@ function sendMessage(){
 
 
 
+
     if(
         text.toLowerCase()
         .includes("сдаюсь")
     ){
 
         finishStory();
+
         return;
 
     }
 
 
 
+
+
     callGroq(
+
         state.messages,
+
+
+        `Ты ведущий игры.
+        Отвечай строго по правилам режима.
+        Не начинай новую историю.`,
+
 
         (response, clue)=>{
 
 
-            if(response.startsWith("❌")){
+            state.isGenerating=false;
 
-                addSystemMessage(response);
-
-                state.isGenerating=false;
-
-                setLoading(false);
-
-                return;
-
-            }
+            setLoading(false);
 
 
-
-            // Данетки — победа
 
             if(
-                state.mode==="danetki" &&
-                clue==="УГАДАЛ"
+                response.startsWith("❌")
             ){
 
-                addMessage(
-                    "ai",
-                    "🎉 Вы разгадали загадку!"
+                addSystemMessage(
+                    response
                 );
-
-
-                finishStory();
 
                 return;
 
@@ -551,32 +592,81 @@ function sendMessage(){
 
 
 
-            // Новая улика
+
+
+            // =========================
+            // ДАНЕТКИ
+            // =========================
+
 
             if(
-                clue &&
+                state.mode==="danetki"
+            ){
+
+
+                if(
+                    clue==="УГАДАЛ"
+                ){
+
+                    addMessage(
+                        "ai",
+                        "🎉 Вы разгадали загадку!"
+                    );
+
+
+                    finishStory();
+
+                    return;
+
+                }
+
+
+            }
+
+
+
+
+
+            // =========================
+            // ДЕТЕКТИВ
+            // =========================
+
+
+            if(
                 state.mode==="detective"
+                &&
+                clue
             ){
 
 
                 const exists =
-                state.progress.foundClues
+                state.progress
+                .foundClues
                 .some(
-                    c =>
+
+                    c=>
                     c.toLowerCase()
-                    ===clue.toLowerCase()
+                    ===
+                    clue.toLowerCase()
+
                 );
+
 
 
                 if(!exists){
 
                     state.progress
                     .foundClues
-                    .push(clue);
+                    .push(
+                        clue
+                    );
 
                 }
 
+
             }
+
+
 
 
 
@@ -587,65 +677,113 @@ function sendMessage(){
 
 
 
-            state.isGenerating=false;
-
-
-            setLoading(false);
-
-
             updateUI(
+
                 state.mode==="detective"
-                ? "расследование"
-                :"загадка",
+                ?
+                "расследование"
+                :
+                "загадка",
+
                 "#34d399"
+
             );
+
 
 
             saveState();
 
 
         }
+
     );
+
 
 }
 
 
 
 
+
+
 // ============================================================
-// ФИНАЛ
+// ФИНАЛ ИГРЫ
 // ============================================================
+
 
 function finishStory(){
 
 
-    if(state.isFinished)
+    if(
+        state.isFinished
+    )
         return;
+
 
 
     state.isFinished=true;
 
 
 
-    const finalText =
-    state.mode==="detective"
+    updateUI(
+        "завершено",
+        "#f59e0b"
+    );
 
-    ?
 
-`Дело: ${state.case.title}
 
-Настоящее решение:
+
+    let result="";
+
+
+
+    if(
+        state.mode==="detective"
+    ){
+
+
+        result =
+`
+🕵️ Дело: ${state.case.title}
+
+
+Настоящее происшествие:
+
 ${state.case.solution}
 
+
 Найденные улики:
-${state.progress.foundClues.join(", ") || "нет"}`
+
+${
+state.progress.foundClues.length
+?
+state.progress.foundClues.join("\n")
+:
+"Улик не найдено"
+}
+`;
 
 
-    :
 
-`Разгадка:
+    }
+    else{
 
-${state.danetki.solution}`;
+
+        result =
+`
+❓ Разгадка:
+
+
+${state.danetki.solution}
+
+
+Подсказка:
+
+${state.danetki.hint}
+`;
+
+    }
+
 
 
 
@@ -654,9 +792,14 @@ ${state.danetki.solution}`;
         "final-title"
     )
     .textContent =
+
     state.mode==="detective"
-    ? "Дело раскрыто"
-    : "Загадка разгадана";
+    ?
+    "Дело раскрыто"
+    :
+    "Загадка разгадана";
+
+
 
 
 
@@ -665,7 +808,8 @@ ${state.danetki.solution}`;
         "final-story"
     )
     .textContent =
-    finalText;
+    result;
+
 
 
 
@@ -681,15 +825,23 @@ ${state.danetki.solution}`;
     saveState();
 
 
+
     showFinalScreen();
 
+
+
 }
+
+
+
+
 
 
 
 // ============================================================
 // СОХРАНЕНИЕ
 // ============================================================
+
 
 function saveState(){
 
@@ -701,9 +853,12 @@ function saveState(){
 
             "detective_chat_state",
 
-            JSON.stringify(state)
+            JSON.stringify(
+                state
+            )
 
         );
+
 
 
         const btn =
@@ -712,21 +867,27 @@ function saveState(){
         );
 
 
+
         if(btn)
-            btn.style.display="block";
+            btn.style.display =
+            "block";
 
 
     }
     catch(e){
 
         console.error(
-            "Ошибка сохранения",
+            "Save error",
             e
         );
 
     }
 
+
 }
+
+
+
 
 
 
@@ -735,39 +896,29 @@ function saveState(){
 // ЗАГРУЗКА
 // ============================================================
 
+
 function loadState(){
 
 
     try{
 
 
-        const raw =
+        const saved =
         localStorage.getItem(
             "detective_chat_state"
         );
 
 
-        if(!raw)
+
+        if(!saved)
             return false;
 
 
 
         const data =
-        JSON.parse(raw);
-
-
-
-        if(
-            data.version!=="2.0"
-        ){
-
-            localStorage.removeItem(
-                "detective_chat_state"
-            );
-
-            return false;
-
-        }
+        JSON.parse(
+            saved
+        );
 
 
 
@@ -776,42 +927,53 @@ function loadState(){
 
 
         const chat =
-        document.getElementById(
+        document
+        .getElementById(
             "chat-messages"
         );
+
 
 
         chat.innerHTML="";
 
 
 
-        state.messages.forEach(
+        state.messages
+        .forEach(
+
             m=>{
 
-
                 const div =
-                document.createElement(
+                document
+                .createElement(
                     "div"
                 );
 
 
                 div.className =
-                `message message-${m.type}`;
+                `
+                message
+                message-${m.type}
+                `;
 
 
                 div.textContent =
                 m.text;
 
 
-                chat.appendChild(div);
 
+                chat.appendChild(
+                    div
+                );
 
             }
+
         );
 
 
 
         showGameScreen();
+
 
 
         updateUI(
@@ -827,9 +989,14 @@ function loadState(){
     }
     catch(e){
 
-        console.error(e);
+
+        console.error(
+            e
+        );
+
 
         return false;
+
 
     }
 
@@ -839,14 +1006,21 @@ function loadState(){
 
 
 
+
+
+
+
 // ============================================================
 // ВЫХОД
 // ============================================================
 
+
 function exitToMain(){
 
 
-    if(state.isGenerating)
+    if(
+        state.isGenerating
+    )
         return;
 
 
@@ -856,7 +1030,11 @@ function exitToMain(){
 
     showStartScreen();
 
+
 }
+
+
+
 
 
 
@@ -866,116 +1044,127 @@ function exitToMain(){
 // ============================================================
 
 
-
 document.addEventListener(
+
 "DOMContentLoaded",
+
 ()=>{
 
 
-    // переключение режима
+    document
+    .querySelectorAll(
+        ".mode-btn"
+    )
+    .forEach(
+
+        btn=>{
+
+
+            btn.addEventListener(
+
+            "click",
+
+            ()=>{
+
+
+                document
+                .querySelectorAll(
+                    ".mode-btn"
+                )
+                .forEach(
+
+                    b=>
+                    b.classList
+                    .remove(
+                        "active"
+                    )
+
+                );
+
+
+                btn.classList
+                .add(
+                    "active"
+                );
+
+
+
+                state.mode =
+                btn.dataset.mode;
+
+
+            });
+
+        }
+
+    );
+
+
+
+
 
     document
-    .querySelectorAll(".mode-btn")
-    .forEach(btn=>{
-
-        btn.addEventListener(
-        "click",
-        ()=>{
-
-
-            document
-            .querySelectorAll(".mode-btn")
-            .forEach(b=>
-                b.classList.remove("active")
-            );
-
-
-            btn.classList.add("active");
-
-
-            state.mode =
-            btn.dataset.mode;
-
-
-        });
-
-
-    });
-
-
-
-    // старт
-
-    const start =
-    document.getElementById(
+    .getElementById(
         "start-btn"
+    )
+    ?.addEventListener(
+        "click",
+        initGame
     );
 
 
-    if(start){
-
-        start.onclick =
-        initGame;
-
-    }
 
 
 
-    // отправка сообщения
-
-    const send =
-    document.getElementById(
+    document
+    .getElementById(
         "send-btn"
+    )
+    ?.addEventListener(
+        "click",
+        sendMessage
     );
 
 
-    if(send){
-
-        send.onclick =
-        sendMessage;
-
-    }
 
 
 
-    const input =
-    document.getElementById(
+    document
+    .getElementById(
         "chat-input"
-    );
+    )
+    ?.addEventListener(
 
-
-    if(input){
-
-        input.addEventListener(
         "keydown",
+
         e=>{
 
-            if(e.key==="Enter")
+            if(
+                e.key==="Enter"
+            )
                 sendMessage();
 
-        });
+        }
 
-    }
-
-
-
-    // загрузка
-
-    const load =
-    document.getElementById(
-        "load-btn"
     );
 
 
-    if(load){
-
-        load.onclick =
-        ()=>loadState();
-
-    }
 
 
-});
+
+    document
+    .getElementById(
+        "load-btn"
+    )
+    ?.addEventListener(
+
+        "click",
+
+        loadState
+
+    );
+
+
 
 
 
@@ -983,10 +1172,15 @@ document.addEventListener(
     .getElementById(
         "restart-btn"
     )
-    .addEventListener(
+    ?.addEventListener(
+
         "click",
+
         showStartScreen
+
     );
+
+
 
 
 
@@ -994,10 +1188,14 @@ document.addEventListener(
     .getElementById(
         "exit-btn"
     )
-    .addEventListener(
+    ?.addEventListener(
+
         "click",
+
         exitToMain
+
     );
+
 
 
 });
@@ -1005,9 +1203,7 @@ document.addEventListener(
 
 
 
-// ============================================================
-// АВТОПОКАЗ КНОПКИ ЗАГРУЗКИ
-// ============================================================
+
 
 
 if(
@@ -1029,6 +1225,8 @@ localStorage.getItem(
 
 
 
+
+
 console.log(
-"🕵️ Game Engine v2.0 loaded"
+"🕵️ Game Engine v2.1 loaded"
 );

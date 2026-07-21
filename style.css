@@ -1,0 +1,329 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #0a0a0f;
+    color: #e0e0e0;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 16px;
+    touch-action: manipulation;
+}
+
+#app {
+    max-width: 480px;
+    width: 100%;
+    background: #14141e;
+    border-radius: 28px;
+    padding: 24px 20px 32px;
+    box-shadow: 0 0 40px rgba(100, 60, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    min-height: 600px;
+    display: flex;
+    flex-direction: column;
+    transition: all 0.3s;
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* ===== СТАРТОВЫЙ ЭКРАН ===== */
+#start-screen {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    gap: 20px;
+    padding: 10px 0;
+}
+
+#start-screen h1 {
+    font-size: 38px;
+    font-weight: 700;
+    background: linear-gradient(135deg, #a78bfa, #60a5fa);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: -0.5px;
+}
+
+#start-screen .sub {
+    color: #8888aa;
+    font-size: 16px;
+    margin-top: -8px;
+    line-height: 1.5;
+}
+
+.input-group {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 10px 0;
+}
+
+.input-group input {
+    background: #1e1e2e;
+    border: 1px solid #2a2a40;
+    border-radius: 14px;
+    padding: 14px 18px;
+    font-size: 18px;
+    color: #e0e0e0;
+    outline: none;
+    width: 100%;
+    transition: border 0.2s;
+}
+
+.input-group input:focus {
+    border-color: #7c5cfc;
+}
+
+.input-group input::placeholder {
+    color: #555577;
+}
+
+.btn {
+    background: linear-gradient(135deg, #7c5cfc, #5b3fd4);
+    border: none;
+    border-radius: 16px;
+    padding: 16px 24px;
+    font-size: 20px;
+    font-weight: 600;
+    color: white;
+    cursor: pointer;
+    transition: all 0.15s;
+    touch-action: manipulation;
+    user-select: none;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 4px 20px rgba(100, 60, 255, 0.25);
+}
+
+.btn:active {
+    transform: scale(0.96);
+    opacity: 0.8;
+}
+
+.btn-secondary {
+    background: #1e1e2e;
+    box-shadow: none;
+    border: 1px solid #2a2a40;
+    color: #aaaacc;
+}
+
+.btn-secondary:active {
+    background: #2a2a40;
+}
+
+.btn-success {
+    background: linear-gradient(135deg, #34d399, #059669);
+    box-shadow: 0 4px 20px rgba(52, 211, 153, 0.2);
+}
+
+/* ===== ИГРОВОЙ ЭКРАН ===== */
+#game-screen {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+#game-screen .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #1e1e2e;
+}
+
+#game-screen .step-counter {
+    color: #666688;
+    font-size: 14px;
+    background: #1a1a28;
+    padding: 6px 14px;
+    border-radius: 20px;
+}
+
+#game-screen .status {
+    color: #8888bb;
+    font-size: 13px;
+    padding: 4px 12px;
+    border-radius: 12px;
+    background: #1a1a28;
+}
+
+#game-screen .phase-badge {
+    background: linear-gradient(135deg, #7c5cfc20, #5b3fd420);
+    color: #a78bfa;
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: center;
+    border: 1px solid #2a2a50;
+}
+
+#game-screen .content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    min-height: 280px;
+    justify-content: center;
+}
+
+#game-screen .content .label {
+    color: #666688;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 600;
+}
+
+#game-screen .content .text {
+    font-size: 24px;
+    line-height: 1.5;
+    font-weight: 500;
+    color: #f0f0f5;
+    padding: 8px 0;
+    word-break: break-word;
+}
+
+#game-screen .actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 8px;
+}
+
+#game-screen .actions .btn {
+    font-size: 18px;
+    padding: 14px;
+}
+
+/* ===== ФИНАЛЬНЫЙ ЭКРАН ===== */
+#final-screen {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 10px 0;
+}
+
+#final-screen .title {
+    font-size: 32px;
+    font-weight: 700;
+    background: linear-gradient(135deg, #fbbf24, #f59e0b);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    line-height: 1.2;
+}
+
+#final-screen .story-text {
+    background: #1a1a28;
+    border-radius: 16px;
+    padding: 18px;
+    font-size: 16px;
+    line-height: 1.7;
+    color: #d0d0e8;
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid #1e1e2e;
+    white-space: pre-wrap;
+}
+
+#final-screen .stats {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+#final-screen .stats .stat {
+    background: #1a1a28;
+    padding: 10px 16px;
+    border-radius: 12px;
+    font-size: 14px;
+    color: #8888bb;
+    border: 1px solid #1e1e2e;
+    flex: 1;
+    min-width: 80px;
+    text-align: center;
+}
+
+#final-screen .stats .stat span {
+    display: block;
+    color: #e0e0f0;
+    font-size: 22px;
+    font-weight: 600;
+    margin-top: 4px;
+}
+
+/* ===== АНИМАЦИЯ ЗАГРУЗКИ ===== */
+.loader {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid #2a2a50;
+    border-top-color: #7c5cfc;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    vertical-align: middle;
+    margin-right: 10px;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ===== АДАПТИВ ===== */
+@media (max-width: 420px) {
+    #app {
+        padding: 16px 14px 24px;
+        border-radius: 20px;
+        min-height: 500px;
+    }
+    #start-screen h1 {
+        font-size: 30px;
+    }
+    #game-screen .content .text {
+        font-size: 20px;
+    }
+    #final-screen .title {
+        font-size: 26px;
+    }
+    .btn {
+        font-size: 17px;
+        padding: 14px 20px;
+    }
+}
+
+@media (min-width: 768px) {
+    #app {
+        padding: 40px 36px 48px;
+        min-height: 700px;
+    }
+    #game-screen .content .text {
+        font-size: 28px;
+    }
+}
+
+::-webkit-scrollbar {
+    width: 4px;
+}
+::-webkit-scrollbar-track {
+    background: #14141e;
+}
+::-webkit-scrollbar-thumb {
+    background: #2a2a50;
+    border-radius: 4px;
+}

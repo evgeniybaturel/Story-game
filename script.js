@@ -8,7 +8,8 @@ let state = {
     isGenerating: false,
     isFinished: false,
     step: 0,
-    opening: ''
+    opening: '',
+    actions: ['Осмотреть место', 'Искать улики', 'Спросить']
 };
 
 // ============================================================
@@ -27,6 +28,7 @@ const chatMessages = $('chat-messages');
 const chatInput = $('chat-input');
 const sendBtn = $('send-btn');
 const chatStatus = $('chat-status');
+const quickActions = $('quick-actions');
 
 const finalTitle = $('final-title');
 const finalStory = $('final-story');
@@ -85,14 +87,41 @@ function removeLastSystemMessage() {
 }
 
 // ============================================================
-// ЗАПРОС К GROQ
+// ДИНАМИЧЕСКИЕ КНОПКИ
+// ============================================================
+
+function updateActions(actions) {
+    quickActions.innerHTML = '';
+    
+    if (!actions || actions.length === 0) {
+        // Запасные кнопки
+        actions = ['Осмотреть место', 'Искать улики', 'Спросить'];
+    }
+    
+    actions.forEach(action => {
+        const btn = document.createElement('button');
+        btn.className = 'quick-btn';
+        btn.textContent = action;
+        btn.dataset.action = action;
+        btn.addEventListener('click', () => {
+            chatInput.value = action;
+            sendMessage();
+        });
+        quickActions.appendChild(btn);
+    });
+    
+    state.actions = actions;
+}
+
+// ============================================================
+// ЗАПРОС К GROQ (с JSON-ответом)
 // ============================================================
 
 async function callGroq(messages, systemPrompt, callback) {
     const apiKey = getApiKey();
     
     if (!apiKey) {
-        callback('❌ Ошибка: API-ключ не найден. Введите ключ на стартовом экране.');
+        callback('❌ Ошибка: API-ключ не найден. Введите ключ на стартовом экране.', []);
         return;
     }
 
@@ -105,7 +134,7 @@ async function callGroq(messages, systemPrompt, callback) {
     const userInput = lastUserMessage ? lastUserMessage.text : 'Начало расследования';
 
     const userPrompt = `
-Ты — ведущий детективной игры для двух игроков.
+Ты — ведущий детективной игры для двух игроков, которые гуляют по улице.
 
 Вот ЗАВЯЗКА дела:
 ${state.opening || 'Вы находите загадочный предмет на скамейке в парке.'}
@@ -115,7 +144,25 @@ ${fullContext}
 
 Сейчас игроки написали: "${userInput}"
 
-Ответь КРАТКО (2-4 предложения), но ПОЛНО. Развивай историю. Не обрывай мысль. Добавляй атмосферные детали.
+ОТВЕТЬ В ФОРМАТЕ JSON:
+{
+  "text": "Твой ответ игрокам (2-4 предложения, атмосферно, с деталями)",
+  "actions": ["Действие 1", "Действие 2", "Действие 3", "Действие 4"]
+}
+
+ПРАВИЛА ДЛЯ ACTIONS:
+1. Действия должны ЛОГИЧНО вытекать из твоего ответа
+2. Действия должны быть КОНКРЕТНЫМИ (не "Спросить", а "Спросить у кассирши")
+3. 3-4 действия, не больше
+4. Если игроки уже близки к разгадке — добавь действие "Выдвинуть версию"
+
+Пример:
+{
+  "text": "Вы находите билет в кино в кармане мужчины. На билете — отпечаток пальца и надпись 'Ряд 7, место 12'.",
+  "actions": ["Пойти в кинотеатр", "Спросить у прохожих", "Осмотреть билет", "Проверить отпечаток"]
+}
+
+ОТВЕТЬ ТОЛЬКО JSON. Без лишнего текста.
 `;
 
     try {
@@ -128,39 +175,65 @@ ${fullContext}
             body: JSON.stringify({
                 model: 'llama-3.3-70b-versatile',
                 messages: [
-                    { role: 'system', content: systemPrompt || 'Ты — ведущий детективной игры. Отвечай ТОЛЬКО ПОЛНЫМИ ПРЕДЛОЖЕНИЯМИ (2-4 предложения). Никогда не обрывай мысль. Добавляй детали: звуки, запахи, погоду. Не используй эмодзи.' },
+                    { role: 'system', content: systemPrompt || 'Ты — ведущий детективной игры. Отвечай ТОЛЬКО В ФОРМАТЕ JSON. Будь атмосферным, но кратким.' },
                     { role: 'user', content: userPrompt }
                 ],
                 temperature: 0.85,
-                max_tokens: 250
+                max_tokens: 300,
+                response_format: { type: 'json_object' }
             })
         });
 
         if (!response.ok) {
             const errorData = await response.json();
             const errorMsg = errorData.error?.message || `HTTP ${response.status}`;
-            callback(`❌ Ошибка Groq: ${errorMsg}`);
+            callback(`❌ Ошибка Groq: ${errorMsg}`, []);
             return;
         }
 
         const data = await response.json();
         console.log('Groq ответ:', data);
         
-        let text = data.choices?.[0]?.message?.content?.trim();
+        let rawText = data.choices?.[0]?.message?.content?.trim() || '';
         
-        if (!text) {
-            callback('❌ Ошибка: Groq вернул пустой ответ');
+        if (!rawText) {
+            callback('❌ Ошибка: Groq вернул пустой ответ', []);
             return;
         }
         
+        // Парсим JSON
+        let parsed;
+        try {
+            parsed = JSON.parse(rawText);
+        } catch (e) {
+            console.error('Ошибка парсинга JSON:', e);
+            // Пробуем найти JSON в тексте
+            const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                try {
+                    parsed = JSON.parse(jsonMatch[0]);
+                } catch (e2) {
+                    callback('❌ Ошибка: Не удалось распарсить ответ ИИ', []);
+                    return;
+                }
+            } else {
+                callback('❌ Ошибка: Не удалось распарсить ответ ИИ', []);
+                return;
+            }
+        }
+        
+        let text = parsed.text || 'Продолжайте расследование.';
+        let actions = parsed.actions || ['Осмотреть место', 'Искать улики', 'Спросить'];
+        
+        // Проверяем, не обрывается ли текст
         if (text.length > 0 && !text.endsWith('.') && !text.endsWith('!') && !text.endsWith('?')) {
             text += ' Продолжайте расследование.';
         }
         
-        callback(text);
+        callback(text, actions);
     } catch (error) {
         console.error('Groq ошибка:', error);
-        callback(`❌ Ошибка: ${error.message || 'Неизвестная ошибка'}`);
+        callback(`❌ Ошибка: ${error.message || 'Неизвестная ошибка'}`, []);
     }
 }
 
@@ -195,12 +268,20 @@ function initGame() {
     sendBtn.disabled = true;
     chatInput.disabled = true;
 
-    const systemPrompt = 'Ты — ведущий детективной игры. Отвечай только текстом, без эмодзи. Будь атмосферным. Придумывай НОВЫЕ, НЕПОВТОРЯЮЩИЕСЯ завязки.';
+    const systemPrompt = 'Ты — ведущий детективной игры. Отвечай ТОЛЬКО В ФОРМАТЕ JSON. Будь атмосферным, но кратким.';
     const userPrompt = `
 Придумай УНИКАЛЬНУЮ ЗАВЯЗКУ для детективной игры.
-Опиши место, что нашли, и первую зацепку.
-НЕ используй слово "ПЕРО" и "кинотеатр".
-Ответь ТОЛЬКО текстом (3-4 предложения).
+
+ОТВЕТЬ В ФОРМАТЕ JSON:
+{
+  "text": "Завязка (3-4 предложения, атмосферно, с деталями)",
+  "actions": ["Действие 1", "Действие 2", "Действие 3"]
+}
+
+ПРАВИЛА:
+- Опиши место, что нашли, первую зацепку
+- НЕ используй слово "ПЕРО" и "кинотеатр"
+- Действия должны логично вытекать из завязки
 `;
 
     fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -216,7 +297,8 @@ function initGame() {
                 { role: 'user', content: userPrompt }
             ],
             temperature: 0.85,
-            max_tokens: 200
+            max_tokens: 250,
+            response_format: { type: 'json_object' }
         })
     })
     .then(response => {
@@ -228,15 +310,31 @@ function initGame() {
         return response.json();
     })
     .then(data => {
-        let text = data.choices?.[0]?.message?.content?.trim();
+        let rawText = data.choices?.[0]?.message?.content?.trim() || '';
         
-        if (!text || text.length < 20) {
-            throw new Error('Пустой или слишком короткий ответ');
+        if (!rawText) {
+            throw new Error('Пустой ответ');
         }
+        
+        let parsed;
+        try {
+            parsed = JSON.parse(rawText);
+        } catch (e) {
+            const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                parsed = JSON.parse(jsonMatch[0]);
+            } else {
+                throw new Error('Не удалось распарсить JSON');
+            }
+        }
+        
+        let text = parsed.text || 'Вы находите загадочный предмет на скамейке в парке.';
+        let actions = parsed.actions || ['Осмотреть место', 'Искать улики', 'Спросить'];
         
         state.opening = text;
         removeLastSystemMessage();
         addMessage('ai', text);
+        updateActions(actions);
         chatStatus.textContent = '● расследование';
         chatStatus.style.color = '#34d399';
         sendBtn.disabled = false;
@@ -278,9 +376,9 @@ function sendMessage() {
         return;
     }
 
-    const systemPrompt = 'Ты — ведущий детективной игры. Отвечай ТОЛЬКО ПОЛНЫМИ ПРЕДЛОЖЕНИЯМИ (2-4 предложения). Никогда не обрывай мысль. Добавляй детали: звуки, запахи, погоду. Не используй эмодзи.';
+    const systemPrompt = 'Ты — ведущий детективной игры. Отвечай ТОЛЬКО В ФОРМАТЕ JSON. Будь атмосферным, но кратким.';
 
-    callGroq(state.messages, systemPrompt, (response) => {
+    callGroq(state.messages, systemPrompt, (response, actions) => {
         if (response.startsWith('❌')) {
             addSystemMessage(response);
             sendBtn.disabled = false;
@@ -292,6 +390,9 @@ function sendMessage() {
         }
         
         addMessage('ai', response);
+        if (actions && actions.length > 0) {
+            updateActions(actions);
+        }
         sendBtn.disabled = false;
         chatInput.disabled = false;
         chatInput.focus();
@@ -302,28 +403,6 @@ function sendMessage() {
         saveState();
     });
 }
-
-// ============================================================
-// БЫСТРЫЕ КНОПКИ
-// ============================================================
-
-document.querySelectorAll('.quick-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-        const action = btn.dataset.action;
-        if (action === 'Закончить расследование') {
-            chatInput.value = 'Закончить расследование';
-            sendMessage();
-            return;
-        }
-        if (action === 'Выдвинуть версию') {
-            chatInput.value = 'Выдвигаю версию...';
-            sendMessage();
-            return;
-        }
-        chatInput.value = action;
-        sendMessage();
-    });
-});
 
 // ============================================================
 // ФИНАЛ
@@ -448,7 +527,8 @@ function saveState() {
             storyId: state.storyId,
             step: state.step,
             isFinished: state.isFinished,
-            opening: state.opening
+            opening: state.opening,
+            actions: state.actions
         };
         localStorage.setItem('detective_chat_state', JSON.stringify(data));
         loadBtn.style.display = 'block';
@@ -467,6 +547,7 @@ function loadState() {
         state.step = data.step || 0;
         state.isFinished = data.isFinished || false;
         state.opening = data.opening || '';
+        state.actions = data.actions || ['Осмотреть место', 'Искать улики', 'Спросить'];
         state.isGenerating = false;
 
         if (state.isFinished) {
@@ -489,6 +570,7 @@ function loadState() {
             chatMessages.appendChild(msg);
         });
 
+        updateActions(state.actions);
         chatStatus.textContent = '● расследование';
         chatStatus.style.color = '#34d399';
         sendBtn.disabled = false;
@@ -555,4 +637,4 @@ if (localStorage.getItem('detective_chat_state')) {
 }
 
 console.log('🕵️ Детектив на прогулке загружен');
-console.log('🤖 Использует Groq (модель: llama-3.3-70b-versatile)');
+console.log('🤖 Использует Groq с контекстными кнопками');

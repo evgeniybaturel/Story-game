@@ -32,7 +32,6 @@ body {
     display: none !important;
 }
 
-/* ===== СТАРТОВЫЙ ЭКРАН ===== */
 #start-screen {
     flex: 1;
     display: flex;
@@ -45,7 +44,7 @@ body {
 }
 
 #start-screen h1 {
-    font-size: 38px;
+    font-size: 36px;
     font-weight: 700;
     color: #f0f0f5;
     letter-spacing: -0.5px;
@@ -63,7 +62,7 @@ body {
 
 #start-screen .sub {
     color: #8888aa;
-    font-size: 16px;
+    font-size: 15px;
     line-height: 1.5;
     margin-top: 4px;
 }
@@ -85,15 +84,10 @@ body {
     color: #e0e0e0;
     outline: none;
     width: 100%;
-    transition: border 0.2s;
 }
 
 .input-group input:focus {
     border-color: #7c5cfc;
-}
-
-.input-group input::placeholder {
-    color: #555577;
 }
 
 .btn {
@@ -131,12 +125,11 @@ body {
     background: linear-gradient(135deg, #34d399, #059669);
 }
 
-/* ===== ИГРОВОЙ ЭКРАН ===== */
 #game-screen {
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 14px;
 }
 
 #game-screen .header {
@@ -163,24 +156,12 @@ body {
     background: #1a1a28;
 }
 
-#game-screen .phase-badge {
-    background: linear-gradient(135deg, #7c5cfc20, #5b3fd420);
-    color: #a78bfa;
-    padding: 6px 16px;
-    border-radius: 20px;
-    font-size: 13px;
-    font-weight: 600;
-    text-align: center;
-    border: 1px solid #2a2a50;
-    letter-spacing: 0.3px;
-}
-
 #game-screen .content {
     flex: 1;
     display: flex;
     flex-direction: column;
     gap: 14px;
-    min-height: 200px;
+    min-height: 180px;
     justify-content: center;
 }
 
@@ -193,7 +174,7 @@ body {
 }
 
 #game-screen .content .text {
-    font-size: 22px;
+    font-size: 20px;
     line-height: 1.6;
     font-weight: 400;
     color: #f0f0f5;
@@ -201,15 +182,13 @@ body {
     word-break: break-word;
 }
 
-/* ===== ИСТОРИЯ ===== */
 .history {
     background: #1a1a28;
     border-radius: 16px;
     padding: 14px 16px;
-    max-height: 120px;
+    max-height: 130px;
     overflow-y: auto;
     border: 1px solid #1e1e2e;
-    margin-top: 4px;
 }
 
 .history-label {
@@ -238,28 +217,26 @@ body {
     border-bottom: none;
 }
 
-.history-item .q {
+.history-item .label {
     color: #a78bfa;
+    font-weight: 500;
 }
 
-.history-item .a {
-    color: #8888bb;
+.history-item .content {
+    color: #d0d0e8;
 }
 
-/* ===== КНОПКИ ===== */
 #game-screen .actions {
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    margin-top: 4px;
+    gap: 8px;
 }
 
 #game-screen .actions .btn {
-    font-size: 18px;
+    font-size: 17px;
     padding: 14px;
 }
 
-/* ===== ФИНАЛЬНЫЙ ЭКРАН ===== */
 #final-screen {
     flex: 1;
     display: flex;
@@ -322,7 +299,6 @@ body {
     margin-top: 4px;
 }
 
-/* ===== ЗАГРУЗКА ===== */
 .loader {
     display: inline-block;
     width: 18px;
@@ -341,7 +317,6 @@ body {
     }
 }
 
-/* ===== АДАПТИВ ===== */
 @media (max-width: 420px) {
     #app {
         padding: 16px 14px 24px;
@@ -349,10 +324,10 @@ body {
         min-height: 500px;
     }
     #start-screen h1 {
-        font-size: 30px;
+        font-size: 28px;
     }
     #game-screen .content .text {
-        font-size: 19px;
+        font-size: 18px;
     }
     #final-screen .title {
         font-size: 24px;
@@ -362,7 +337,7 @@ body {
         padding: 14px 20px;
     }
     .history {
-        max-height: 90px;
+        max-height: 100px;
     }
 }
 
@@ -372,11 +347,10 @@ body {
         min-height: 700px;
     }
     #game-screen .content .text {
-        font-size: 26px;
+        font-size: 24px;
     }
 }
 
-/* ===== СКРОЛЛ ===== */
 ::-webkit-scrollbar {
     width: 4px;
 }

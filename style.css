@@ -144,14 +144,14 @@ body {
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 12px;
 }
 
 .chat-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding-bottom: 12px;
+    padding-bottom: 10px;
     border-bottom: 1px solid #1e1e2e;
     flex-shrink: 0;
 }
@@ -165,6 +165,14 @@ body {
 .chat-status {
     font-size: 13px;
     color: #34d399;
+}
+
+.chat-step {
+    font-size: 13px;
+    color: #555577;
+    background: #1a1a28;
+    padding: 2px 10px;
+    border-radius: 12px;
 }
 
 .chat-messages {
@@ -191,14 +199,8 @@ body {
 }
 
 @keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(6px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 .message-ai {
@@ -226,38 +228,6 @@ body {
     border: 1px dashed #2a2a40;
     max-width: 100%;
     text-align: center;
-}
-
-/* ===== БЫСТРЫЕ КНОПКИ ===== */
-.quick-actions {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-    padding: 8px 0 4px;
-    flex-shrink: 0;
-    justify-content: center;
-}
-
-.quick-btn {
-    background: #1a1a28;
-    border: 1px solid #2a2a40;
-    border-radius: 20px;
-    padding: 8px 16px;
-    font-size: 14px;
-    color: #aaaacc;
-    cursor: pointer;
-    transition: all 0.15s;
-    touch-action: manipulation;
-    user-select: none;
-    white-space: nowrap;
-    max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.quick-btn:active {
-    background: #2a2a40;
-    transform: scale(0.95);
 }
 
 /* ===== ПОЛЕ ВВОДА ===== */
@@ -310,6 +280,157 @@ body {
 .send-btn:disabled {
     opacity: 0.4;
     pointer-events: none;
+}
+
+/* ===== ТУЛБАР (3 кнопки внизу) ===== */
+.toolbar {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    padding: 8px 0 4px;
+    flex-shrink: 0;
+    border-top: 1px solid #1a1a28;
+    margin-top: 4px;
+}
+
+.toolbar-btn {
+    background: #1a1a28;
+    border: 1px solid #2a2a40;
+    border-radius: 50%;
+    width: 44px;
+    height: 44px;
+    font-size: 20px;
+    color: #aaaacc;
+    cursor: pointer;
+    transition: all 0.2s;
+    touch-action: manipulation;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.toolbar-btn:active {
+    transform: scale(0.92);
+    background: #2a2a40;
+}
+
+.toolbar-btn:hover {
+    border-color: #7c5cfc;
+    color: #f0f0f5;
+}
+
+/* ===== МОДАЛЬНОЕ ОКНО ===== */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    padding: 20px;
+    backdrop-filter: blur(4px);
+}
+
+.modal.hidden {
+    display: none !important;
+}
+
+.modal-content {
+    background: #14141e;
+    border-radius: 20px;
+    max-width: 400px;
+    width: 100%;
+    max-height: 80vh;
+    border: 1px solid #2a2a40;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid #1e1e2e;
+    flex-shrink: 0;
+}
+
+.modal-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #f0f0f5;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    color: #8888bb;
+    font-size: 22px;
+    cursor: pointer;
+    padding: 0 4px;
+    transition: color 0.2s;
+}
+
+.modal-close:active {
+    color: #f0f0f5;
+}
+
+.modal-body {
+    padding: 20px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.modal-body .empty {
+    color: #555577;
+    text-align: center;
+    padding: 20px 0;
+}
+
+.modal-body .clue-item {
+    background: #1a1a28;
+    border-radius: 12px;
+    padding: 12px 16px;
+    margin-bottom: 10px;
+    border-left: 3px solid #7c5cfc;
+}
+
+.modal-body .clue-item .clue-text {
+    color: #e0e0e0;
+    font-size: 15px;
+}
+
+.modal-body .clue-item .clue-meta {
+    color: #666688;
+    font-size: 12px;
+    margin-top: 4px;
+}
+
+.modal-body .journal-item {
+    padding: 10px 0;
+    border-bottom: 1px solid #1a1a28;
+}
+
+.modal-body .journal-item:last-child {
+    border-bottom: none;
+}
+
+.modal-body .journal-item .j-type {
+    color: #7c5cfc;
+    font-weight: 500;
+    font-size: 13px;
+}
+
+.modal-body .journal-item .j-text {
+    color: #d0d0e8;
+    font-size: 14px;
+    margin-top: 2px;
 }
 
 /* ===== ФИНАЛЬНЫЙ ЭКРАН ===== */
@@ -376,21 +497,6 @@ body {
     margin-top: 4px;
 }
 
-/* ===== АНИМАЦИЯ ПЕЧАТИ ===== */
-.typing-cursor {
-    display: inline-block;
-    width: 2px;
-    height: 1em;
-    background: #7c5cfc;
-    margin-left: 2px;
-    animation: blink 0.7s infinite;
-}
-
-@keyframes blink {
-    0%, 50% { opacity: 1; }
-    51%, 100% { opacity: 0; }
-}
-
 /* ===== АДАПТИВ ===== */
 @media (max-width: 420px) {
     #app {
@@ -409,10 +515,6 @@ body {
         max-height: 320px;
         min-height: 200px;
     }
-    .quick-btn {
-        font-size: 13px;
-        padding: 6px 12px;
-    }
     #chat-input {
         font-size: 15px;
         padding: 10px 14px;
@@ -427,6 +529,11 @@ body {
     .btn {
         font-size: 17px;
         padding: 14px 20px;
+    }
+    .toolbar-btn {
+        width: 40px;
+        height: 40px;
+        font-size: 18px;
     }
 }
 
@@ -454,4 +561,4 @@ body {
 ::-webkit-scrollbar-thumb {
     background: #2a2a50;
     border-radius: 4px;
-    }
+}

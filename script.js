@@ -62,13 +62,40 @@ window.addEventListener('DOMContentLoaded', () => {
 // ВСПОМОГАТЕЛЬНЫЕ
 // ============================================================
 
-function addMessage(type, text) {
+function addMessage(type, text, isTyping = false) {
+    const msg = document.createElement('div');
+    msg.className = `message message-${type}`;
+    
+    // Если это сообщение ИИ и нужно печатать
+    if (type === 'ai' && !isTyping) {
+        msg.textContent = '';
+        chatMessages.appendChild(msg);
+        typeMessage(msg, text, () => {
+            // После печати — обновляем кнопки
+            if (state.actions && state.actions.length > 0) {
+                updateActions(state.actions);
+            }
+        });
+        state.messages.push({ type, text, timestamp: new Date().toISOString() });
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+        return msg;
+    }
+    
+    msg.textContent = text;
+    chatMessages.appendChild(msg);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+    state.messages.push({ type, text, timestamp: new Date().toISOString() });
+    return msg;
+}
+
+function addMessageInstant(type, text) {
     const msg = document.createElement('div');
     msg.className = `message message-${type}`;
     msg.textContent = text;
     chatMessages.appendChild(msg);
     chatMessages.scrollTop = chatMessages.scrollHeight;
     state.messages.push({ type, text, timestamp: new Date().toISOString() });
+    return msg;
 }
 
 function addSystemMessage(text) {
@@ -87,6 +114,28 @@ function removeLastSystemMessage() {
 }
 
 // ============================================================
+// АНИМАЦИЯ ПЕЧАТИ
+// ============================================================
+
+function typeMessage(element, text, callback) {
+    let index = 0;
+    const speed = 15; // мс на символ
+    
+    function type() {
+        if (index < text.length) {
+            element.textContent += text.charAt(index);
+            index++;
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            setTimeout(type, speed);
+        } else {
+            if (callback) callback();
+        }
+    }
+    
+    type();
+}
+
+// ============================================================
 // ДИНАМИЧЕСКИЕ КНОПКИ
 // ============================================================
 
@@ -94,7 +143,6 @@ function updateActions(actions) {
     quickActions.innerHTML = '';
     
     if (!actions || actions.length === 0) {
-        // Запасные кнопки
         actions = ['Осмотреть место', 'Искать улики', 'Спросить'];
     }
     
@@ -102,6 +150,7 @@ function updateActions(actions) {
         const btn = document.createElement('button');
         btn.className = 'quick-btn';
         btn.textContent = action;
+        btn.title = action;
         btn.dataset.action = action;
         btn.addEventListener('click', () => {
             chatInput.value = action;
@@ -114,7 +163,7 @@ function updateActions(actions) {
 }
 
 // ============================================================
-// ЗАПРОС К GROQ (с JSON-ответом)
+// ЗАПРОС К GROQ
 // ============================================================
 
 async function callGroq(messages, systemPrompt, callback) {
@@ -156,12 +205,6 @@ ${fullContext}
 3. 3-4 действия, не больше
 4. Если игроки уже близки к разгадке — добавь действие "Выдвинуть версию"
 
-Пример:
-{
-  "text": "Вы находите билет в кино в кармане мужчины. На билете — отпечаток пальца и надпись 'Ряд 7, место 12'.",
-  "actions": ["Пойти в кинотеатр", "Спросить у прохожих", "Осмотреть билет", "Проверить отпечаток"]
-}
-
 ОТВЕТЬ ТОЛЬКО JSON. Без лишнего текста.
 `;
 
@@ -201,13 +244,11 @@ ${fullContext}
             return;
         }
         
-        // Парсим JSON
         let parsed;
         try {
             parsed = JSON.parse(rawText);
         } catch (e) {
             console.error('Ошибка парсинга JSON:', e);
-            // Пробуем найти JSON в тексте
             const jsonMatch = rawText.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
                 try {
@@ -225,9 +266,9 @@ ${fullContext}
         let text = parsed.text || 'Продолжайте расследование.';
         let actions = parsed.actions || ['Осмотреть место', 'Искать улики', 'Спросить'];
         
-        // Проверяем, не обрывается ли текст
-        if (text.length > 0 && !text.endsWith('.') && !text.endsWith('!') && !text.endsWith('?')) {
-            text += ' Продолжайте расследование.';
+        // Обрезаем длинный текст, если надо
+        if (text.length > 300) {
+            text = text.slice(0, 297) + '...';
         }
         
         callback(text, actions);
@@ -333,8 +374,16 @@ function initGame() {
         
         state.opening = text;
         removeLastSystemMessage();
-        addMessage('ai', text);
-        updateActions(actions);
+        // Используем addMessage с печатью
+        const msg = document.createElement('div');
+        msg.className = 'message message-ai';
+        msg.textContent = '';
+        chatMessages.appendChild(msg);
+        typeMessage(msg, text, () => {
+            updateActions(actions);
+        });
+        state.messages.push({ type: 'ai', text, timestamp: new Date().toISOString() });
+        
         chatStatus.textContent = '● расследование';
         chatStatus.style.color = '#34d399';
         sendBtn.disabled = false;
@@ -360,7 +409,7 @@ function sendMessage() {
     const text = chatInput.value.trim();
     if (!text) return;
 
-    addMessage('user', text);
+    addMessageInstant('user', text);
     chatInput.value = '';
     sendBtn.disabled = true;
     chatInput.disabled = true;
@@ -389,10 +438,19 @@ function sendMessage() {
             return;
         }
         
-        addMessage('ai', response);
-        if (actions && actions.length > 0) {
-            updateActions(actions);
-        }
+        // Печатаем ответ ИИ
+        const msg = document.createElement('div');
+        msg.className = 'message message-ai';
+        msg.textContent = '';
+        chatMessages.appendChild(msg);
+        state.messages.push({ type: 'ai', text: response, timestamp: new Date().toISOString() });
+        
+        typeMessage(msg, response, () => {
+            if (actions && actions.length > 0) {
+                updateActions(actions);
+            }
+        });
+        
         sendBtn.disabled = false;
         chatInput.disabled = false;
         chatInput.focus();
@@ -571,70 +629,4 @@ function loadState() {
         });
 
         updateActions(state.actions);
-        chatStatus.textContent = '● расследование';
-        chatStatus.style.color = '#34d399';
-        sendBtn.disabled = false;
-        chatInput.disabled = false;
-
-        showGameScreen();
-        return true;
-    } catch (e) {
-        return false;
-    }
-}
-
-// ============================================================
-// КОПИРОВАНИЕ
-// ============================================================
-
-copyBtn.addEventListener('click', async () => {
-    const text = `${finalTitle.textContent}\n\n${finalStory.textContent}`;
-    try {
-        await navigator.clipboard.writeText(text);
-        copyBtn.textContent = 'Скопировано!';
-        setTimeout(() => copyBtn.textContent = 'Скопировать', 2000);
-    } catch {
-        const ta = document.createElement('textarea');
-        ta.value = text;
-        document.body.appendChild(ta);
-        ta.select();
-        document.execCommand('copy');
-        ta.remove();
-        copyBtn.textContent = 'Скопировано!';
-        setTimeout(() => copyBtn.textContent = 'Скопировать', 2000);
-    }
-});
-
-// ============================================================
-// ОБРАБОТЧИКИ
-// ============================================================
-
-startBtn.addEventListener('click', initGame);
-
-loadBtn.addEventListener('click', () => {
-    if (!loadState()) {
-        alert('Нет сохранённой игры');
-    }
-});
-
-sendBtn.addEventListener('click', sendMessage);
-
-chatInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-        e.preventDefault();
-        sendMessage();
-    }
-});
-
-restartBtn.addEventListener('click', showStartScreen);
-
-// ============================================================
-// АВТОЗАГРУЗКА
-// ============================================================
-
-if (localStorage.getItem('detective_chat_state')) {
-    loadBtn.style.display = 'block';
-}
-
-console.log('🕵️ Детектив на прогулке загружен');
-console.log('🤖 Использует Groq с контекстными кнопками');
+        chatStatus.text

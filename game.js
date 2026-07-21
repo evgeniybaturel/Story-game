@@ -866,66 +866,116 @@ function exitToMain(){
 // ============================================================
 
 
+
 document.addEventListener(
 "DOMContentLoaded",
 ()=>{
 
 
+    // переключение режима
+
     document
-    .getElementById(
+    .querySelectorAll(".mode-btn")
+    .forEach(btn=>{
+
+        btn.addEventListener(
+        "click",
+        ()=>{
+
+
+            document
+            .querySelectorAll(".mode-btn")
+            .forEach(b=>
+                b.classList.remove("active")
+            );
+
+
+            btn.classList.add("active");
+
+
+            state.mode =
+            btn.dataset.mode;
+
+
+        });
+
+
+    });
+
+
+
+    // старт
+
+    const start =
+    document.getElementById(
         "start-btn"
-    )
-    .addEventListener(
-        "click",
-        initGame
     );
 
 
+    if(start){
 
-    document
-    .getElementById(
+        start.onclick =
+        initGame;
+
+    }
+
+
+
+    // отправка сообщения
+
+    const send =
+    document.getElementById(
         "send-btn"
-    )
-    .addEventListener(
-        "click",
-        sendMessage
     );
 
 
+    if(send){
 
-    document
-    .getElementById(
+        send.onclick =
+        sendMessage;
+
+    }
+
+
+
+    const input =
+    document.getElementById(
         "chat-input"
-    )
-    .addEventListener(
+    );
+
+
+    if(input){
+
+        input.addEventListener(
         "keydown",
         e=>{
 
             if(e.key==="Enter")
                 sendMessage();
 
-        }
-    );
+        });
+
+    }
 
 
 
-    document
-    .getElementById(
+    // загрузка
+
+    const load =
+    document.getElementById(
         "load-btn"
-    )
-    .addEventListener(
-        "click",
-        ()=>{
-
-
-            if(!loadState())
-                alert(
-                    "Нет сохранения"
-                );
-
-
-        }
     );
+
+
+    if(load){
+
+        load.onclick =
+        ()=>loadState();
+
+    }
+
+
+});
 
 
 

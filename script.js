@@ -66,12 +66,10 @@ function addMessage(type, text, isTyping = false) {
     const msg = document.createElement('div');
     msg.className = `message message-${type}`;
     
-    // Если это сообщение ИИ и нужно печатать
     if (type === 'ai' && !isTyping) {
         msg.textContent = '';
         chatMessages.appendChild(msg);
         typeMessage(msg, text, () => {
-            // После печати — обновляем кнопки
             if (state.actions && state.actions.length > 0) {
                 updateActions(state.actions);
             }
@@ -119,7 +117,7 @@ function removeLastSystemMessage() {
 
 function typeMessage(element, text, callback) {
     let index = 0;
-    const speed = 15; // мс на символ
+    const speed = 12;
     
     function type() {
         if (index < text.length) {
@@ -183,9 +181,9 @@ async function callGroq(messages, systemPrompt, callback) {
     const userInput = lastUserMessage ? lastUserMessage.text : 'Начало расследования';
 
     const userPrompt = `
-Ты — ведущий детективной игры для двух игроков, которые гуляют по улице.
+Ты — ведущий детективной игры.
 
-Вот ЗАВЯЗКА дела:
+Вот ЗАВЯЗКА:
 ${state.opening || 'Вы находите загадочный предмет на скамейке в парке.'}
 
 Вот что уже произошло:
@@ -195,15 +193,16 @@ ${fullContext}
 
 ОТВЕТЬ В ФОРМАТЕ JSON:
 {
-  "text": "Твой ответ игрокам (2-4 предложения, атмосферно, с деталями)",
+  "text": "Твой ответ (2 предложения, КОРОТКО, по делу, без воды)",
   "actions": ["Действие 1", "Действие 2", "Действие 3", "Действие 4"]
 }
 
-ПРАВИЛА ДЛЯ ACTIONS:
-1. Действия должны ЛОГИЧНО вытекать из твоего ответа
-2. Действия должны быть КОНКРЕТНЫМИ (не "Спросить", а "Спросить у кассирши")
-3. 3-4 действия, не больше
-4. Если игроки уже близки к разгадке — добавь действие "Выдвинуть версию"
+ПРАВИЛА:
+1. ОТВЕЧАЙ КОРОТКО — максимум 2 предложения. Не расписывай.
+2. ГОВОРИ ПО ДЕЛУ — только то, что помогает расследованию.
+3. НЕ БУДЬ КНИЖНЫМ — пиши как живой человек.
+4. 3-4 действия, конкретные.
+5. Если игроки близки к разгадке — добавь "Выдвинуть версию".
 
 ОТВЕТЬ ТОЛЬКО JSON. Без лишнего текста.
 `;
@@ -218,12 +217,11 @@ ${fullContext}
             body: JSON.stringify({
                 model: 'llama-3.3-70b-versatile',
                 messages: [
-                    { role: 'system', content: systemPrompt || 'Ты — ведущий детективной игры. Отвечай ТОЛЬКО В ФОРМАТЕ JSON. Будь атмосферным, но кратким.' },
+                    { role: 'system', content: systemPrompt || 'Ты — ведущий детективной игры. Отвечай КОРОТКО (2 предложения), по делу, без воды. Не расписывай. Отвечай ТОЛЬКО В ФОРМАТЕ JSON.' },
                     { role: 'user', content: userPrompt }
                 ],
-                temperature: 0.85,
-                max_tokens: 300,
-                response_format: { type: 'json_object' }
+                temperature: 0.75,
+                max_tokens: 200
             })
         });
 
@@ -266,9 +264,9 @@ ${fullContext}
         let text = parsed.text || 'Продолжайте расследование.';
         let actions = parsed.actions || ['Осмотреть место', 'Искать улики', 'Спросить'];
         
-        // Обрезаем длинный текст, если надо
-        if (text.length > 300) {
-            text = text.slice(0, 297) + '...';
+        // Обрезаем, если слишком длинный
+        if (text.length > 200) {
+            text = text.slice(0, 197) + '...';
         }
         
         callback(text, actions);
@@ -309,20 +307,20 @@ function initGame() {
     sendBtn.disabled = true;
     chatInput.disabled = true;
 
-    const systemPrompt = 'Ты — ведущий детективной игры. Отвечай ТОЛЬКО В ФОРМАТЕ JSON. Будь атмосферным, но кратким.';
+    const systemPrompt = 'Ты — ведущий детективной игры. Отвечай КОРОТКО (2 предложения), по делу, без воды. Отвечай ТОЛЬКО В ФОРМАТЕ JSON.';
     const userPrompt = `
-Придумай УНИКАЛЬНУЮ ЗАВЯЗКУ для детективной игры.
+Придумай ЗАВЯЗКУ для детективной игры.
 
 ОТВЕТЬ В ФОРМАТЕ JSON:
 {
-  "text": "Завязка (3-4 предложения, атмосферно, с деталями)",
+  "text": "Завязка (3-4 предложения, КОРОТКО, по делу)",
   "actions": ["Действие 1", "Действие 2", "Действие 3"]
 }
 
 ПРАВИЛА:
 - Опиши место, что нашли, первую зацепку
+- КОРОТКО, без воды
 - НЕ используй слово "ПЕРО" и "кинотеатр"
-- Действия должны логично вытекать из завязки
 `;
 
     fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -337,8 +335,8 @@ function initGame() {
                 { role: 'system', content: systemPrompt },
                 { role: 'user', content: userPrompt }
             ],
-            temperature: 0.85,
-            max_tokens: 250,
+            temperature: 0.75,
+            max_tokens: 200,
             response_format: { type: 'json_object' }
         })
     })
@@ -374,7 +372,6 @@ function initGame() {
         
         state.opening = text;
         removeLastSystemMessage();
-        // Используем addMessage с печатью
         const msg = document.createElement('div');
         msg.className = 'message message-ai';
         msg.textContent = '';
@@ -425,7 +422,7 @@ function sendMessage() {
         return;
     }
 
-    const systemPrompt = 'Ты — ведущий детективной игры. Отвечай ТОЛЬКО В ФОРМАТЕ JSON. Будь атмосферным, но кратким.';
+    const systemPrompt = 'Ты — ведущий детективной игры. Отвечай КОРОТКО (2 предложения), по делу, без воды. Отвечай ТОЛЬКО В ФОРМАТЕ JSON.';
 
     callGroq(state.messages, systemPrompt, (response, actions) => {
         if (response.startsWith('❌')) {
@@ -438,7 +435,6 @@ function sendMessage() {
             return;
         }
         
-        // Печатаем ответ ИИ
         const msg = document.createElement('div');
         msg.className = 'message message-ai';
         msg.textContent = '';
@@ -481,18 +477,17 @@ function finishStory() {
         .map(m => `${m.type === 'ai' ? 'ИИ' : 'Игроки'}: ${m.text}`)
         .join('\n');
 
-    const systemPrompt = 'Ты — ведущий детективной игры. Отвечай только текстом, без эмодзи. Будь атмосферным.';
+    const systemPrompt = 'Ты — ведущий детективной игры. Отвечай КОРОТКО (3-4 предложения), по делу, без воды. Будь атмосферным, но не расписывай.';
     const userPrompt = `
 Детективное расследование завершено. Вот всё, что произошло:
 ${context}
 
 Напиши ФИНАЛ:
 1. Что на самом деле произошло
-2. Кто был преступником (если тайна была)
+2. Кто был преступником
 3. Что игроки угадали или упустили
-4. Добавь атмосферную концовку
 
-Ответь ТОЛЬКО текстом (3-5 предложений). Без эмодзи.
+Ответь ТОЛЬКО текстом (3-4 предложения). Без воды.
 `;
 
     const apiKey = getApiKey();
@@ -517,8 +512,8 @@ ${context}
                 { role: 'system', content: systemPrompt },
                 { role: 'user', content: userPrompt }
             ],
-            temperature: 0.85,
-            max_tokens: 250
+            temperature: 0.75,
+            max_tokens: 180
         })
     })
     .then(response => {
@@ -695,4 +690,4 @@ if (localStorage.getItem('detective_chat_state')) {
 }
 
 console.log('🕵️ Детектив на прогулке загружен');
-console.log('🤖 Использует Groq с печатью текста');
+console.log('🤖 Использует Groq (короткие ответы)');

@@ -1,70 +1,20 @@
 // ============================================================
-// 1. БАЗА ДАННЫХ
-// ============================================================
-
-const OPENINGS = [
-    "Ты находишь старое письмо в дупле дерева, но оно написано на неизвестном языке...",
-    "Вход в парк перекрыт, но охранник шепчет: 'Только не ходите к старому фонтану'…",
-    "Твой сосед исчез три дня назад, а сегодня ты видишь его в толпе с чемоданом…",
-    "На чердаке бабушкиного дома ты находишь карту с пометкой 'Не открывать до полнолуния'",
-    "В кафе официант случайно роняет записку: 'Они уже близко. Сожги это'",
-    "Ты покупаешь книгу в букинистическом, а между страниц — фотография, где ты стоишь на этом же месте, но 50 лет назад",
-    "Ночью тебе звонит неизвестный номер и говорит: 'Ты должен прийти на стадион. Времени мало'",
-    "В новой квартире ты находишь тайную комнату, где стены покрыты иероглифами",
-    "На пляже волны выносят бутылку с запиской, но язык тебе незнаком, а подпись — твоя",
-    "В метро незнакомец передаёт тебе ключ и шепчет: 'Откроешь — изменишь всё'"
-];
-
-const QUESTIONS = [
-    { type: 'question', text: 'Кто главный герой? Какое у него имя и чем он занимается?' },
-    { type: 'question', text: 'Какое время года в этой истории? Опишите погоду' },
-    { type: 'question', text: 'Что самое странное в этом месте или ситуации?' },
-    { type: 'question', text: 'Какая у героя мечта или цель?' },
-    { type: 'question', text: 'Что герой носит в карманах?' },
-    { type: 'question', text: 'Есть ли у героя спутник или друг?' },
-    { type: 'question', text: 'Что герой чувствует в этот момент?' },
-    { type: 'question', text: 'Какое животное могло бы появиться в этой истории?' }
-];
-
-const TASKS = [
-    { type: 'task', text: 'Опишите звук, который вы слышите вокруг' },
-    { type: 'task', text: 'Используйте слово "стеклянный" в своём описании' },
-    { type: 'task', text: 'Добавьте неожиданный запах в сцену' },
-    { type: 'task', text: 'Опишите, что герой видит за окном' },
-    { type: 'task', text: 'Используйте слово "серебряный" в описании' },
-    { type: 'task', text: 'Что происходит, когда герой закрывает глаза?' },
-    { type: 'task', text: 'Опишите текстуру предмета, который герой трогает' },
-    { type: 'task', text: 'Добавьте элемент, который не может существовать в реальном мире' }
-];
-
-const FALLBACK_TWISTS = [
-    'Внезапно начинается ливень, и всё вокруг меняется',
-    'Герой замечает, что за ним кто-то следит',
-    'Из ниоткуда появляется старая знакомая',
-    'В кармане находится предмет, который меняет всё',
-    'Герой слышит голос, который говорит ему, что делать',
-    'Ситуация оказывается совсем не тем, чем казалась',
-    'Герой находит скрытый проход',
-    'Время начинает идти задом наперёд'
-];
-
-// ============================================================
-// 2. СОСТОЯНИЕ ИГРЫ
+// 1. СОСТОЯНИЕ
 // ============================================================
 
 let state = {
-    currentPhase: 0,
-    totalSteps: 8,
+    currentStep: 0,
     story: [],
     players: ['Игрок 1', 'Игрок 2'],
-    phases: [],
     storyId: Date.now(),
     isGenerating: false,
-    isTwistMode: false
+    isFinished: false,
+    isTwistMode: false,
+    lastQuestion: ''
 };
 
 // ============================================================
-// 3. DOM-ЭЛЕМЕНТЫ
+// 2. DOM
 // ============================================================
 
 const $ = (id) => document.getElementById(id);
@@ -85,16 +35,16 @@ const contentLabel = $('content-label');
 const contentText = $('content-text');
 const nextBtn = $('next-btn');
 const finalBtn = $('final-btn');
+const historyItems = $('history-items');
 
 const finalTitle = $('final-title');
 const finalStory = $('final-story');
 const finalSteps = $('final-steps');
-const finalTwists = $('final-twists');
 const copyBtn = $('copy-btn');
 const restartBtn = $('restart-btn');
 
 // ============================================================
-// 4. ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+// 3. ВСПОМОГАТЕЛЬНЫЕ
 // ============================================================
 
 function shuffle(arr) {
@@ -109,8 +59,16 @@ function random(arr) {
     return arr[Math.floor(Math.random() * arr.length)];
 }
 
+function addHistoryItem(question, answer) {
+    const item = document.createElement('div');
+    item.className = 'history-item';
+    item.innerHTML = `<span class="q">${question}</span><br><span class="a">→ ${answer || 'обсуждено устно'}</span>`;
+    historyItems.appendChild(item);
+    historyItems.scrollTop = historyItems.scrollHeight;
+}
+
 // ============================================================
-// 5. ОСНОВНАЯ ЛОГИКА
+// 4. ОСНОВНАЯ ЛОГИКА
 // ============================================================
 
 function initGame() {
@@ -119,240 +77,272 @@ function initGame() {
     const name1 = p1Input.value.trim() || 'Игрок 1';
     const name2 = p2Input.value.trim() || 'Игрок 2';
     state.players = [name1, name2];
-    state.currentPhase = 0;
+    state.currentStep = 0;
     state.story = [];
     state.storyId = Date.now();
     state.isGenerating = false;
+    state.isFinished = false;
     state.isTwistMode = false;
+    state.lastQuestion = '';
 
-    // Завязка
-    const opening = random(OPENINGS);
-    state.story.push({ type: 'opening', text: opening, answer: '' });
+    // Очищаем историю
+    historyItems.innerHTML = '';
 
-    // Собираем фазы
-    const allPhases = [];
-    const shuffledQuestions = shuffle([...QUESTIONS]);
-    const shuffledTasks = shuffle([...TASKS]);
-
-    for (let i = 0; i < 4; i++) {
-        if (shuffledQuestions[i]) allPhases.push(shuffledQuestions[i]);
-        if (shuffledTasks[i]) allPhases.push(shuffledTasks[i]);
-    }
-
-    state.phases = shuffle(allPhases).slice(0, state.totalSteps);
-    while (state.phases.length < state.totalSteps) {
-        const pool = [...QUESTIONS, ...TASKS];
-        state.phases.push(random(pool));
-    }
+    // Генерируем первую завязку
+    generateOpening();
 
     showGameScreen();
-    showStep();
     saveState();
 }
 
-function showStep() {
-    const phase = state.phases[state.currentPhase];
-    if (!phase) {
-        finishStory();
-        return;
-    }
+function generateOpening() {
+    state.isGenerating = true;
+    statusBadge.textContent = 'Генерация...';
+    phaseBadge.textContent = 'Завязка';
+    contentLabel.textContent = 'Начало истории';
+    contentText.innerHTML = '<span class="loader"></span> Придумываем завязку...';
+    nextBtn.disabled = true;
 
-    const stepNum = state.currentPhase + 1;
-    stepCounter.textContent = `Шаг ${stepNum} / ${state.totalSteps}`;
+    const prompt = `
+        Ты — ведущий интерактивной истории для двух игроков.
+        
+        Придумай ЗАВЯЗКУ для истории.
+        Это должно быть короткое описание (2-3 предложения), которое:
+        - Захватывает внимание
+        - Создаёт загадку или интригу
+        - Оставляет пространство для воображения
+        
+        Не используй эмодзи.
+        Не задавай вопросов. Только описание.
+        Ответь ТОЛЬКО текстом завязки.
+    `;
 
-    if (phase.type === 'question') {
-        statusBadge.textContent = '💬 Обсуждение';
-        phaseBadge.textContent = '❓ Вопрос';
-        contentLabel.textContent = 'Обсудите вместе и найдите ответ';
-    } else {
-        statusBadge.textContent = '🎨 Творчество';
-        phaseBadge.textContent = '✍️ Задание';
-        contentLabel.textContent = 'Придумайте описание вместе';
-    }
-
-    contentText.textContent = phase.text;
-    nextBtn.textContent = '✅ Обсудили!';
-    state.isTwistMode = false;
+    callAI(prompt, 'opening');
 }
 
-function nextStep() {
-    if (state.isGenerating) return;
-
-    const phase = state.phases[state.currentPhase];
-    if (phase) {
-        state.story.push({
-            type: phase.type,
-            text: phase.text,
-            answer: '✓ (обсуждено устно)',
-            timestamp: new Date().toISOString()
-        });
-    }
-
-    state.currentPhase++;
-
-    // Проверяем, нужно ли добавить поворот (каждый 3-й шаг)
-    const shouldAddTwist = (state.currentPhase % 3 === 0) && 
-                           state.currentPhase < state.totalSteps;
-
-    if (shouldAddTwist) {
-        generateTwist();
-        return;
-    }
-
-    if (state.currentPhase >= state.totalSteps) {
-        finishStory();
-    } else {
-        showStep();
-        saveState();
-    }
-}
-
-// ============================================================
-// 6. ИИ — ГЕНЕРАЦИЯ ПОВОРОТОВ
-// ============================================================
-
-async function generateTwist() {
+function generateQuestion() {
     if (state.isGenerating) return;
     state.isGenerating = true;
 
-    statusBadge.textContent = '🌀 Генерация...';
-    phaseBadge.textContent = '⚡ Сюжетный поворот';
-    contentLabel.textContent = 'ИИ придумывает неожиданный поворот';
-    contentText.innerHTML = '<span class="loader"></span> Думаем...';
+    statusBadge.textContent = 'Генерация...';
+    phaseBadge.textContent = 'Вопрос';
+    contentLabel.textContent = 'Обсудите и ответьте';
+    contentText.innerHTML = '<span class="loader"></span> Придумываем вопрос...';
     nextBtn.disabled = true;
 
-    try {
-        const context = state.story
-            .filter(s => s.answer)
-            .map(s => `${s.text} → ${s.answer}`)
-            .join('\n');
+    // Собираем контекст
+    const context = state.story
+        .map(s => {
+            if (s.type === 'opening') return `Начало: ${s.text}`;
+            if (s.type === 'question') return `Вопрос: ${s.text} → Ответ: ${s.answer || 'обсуждено'}`;
+            return s.text;
+        })
+        .join('\n');
 
-        const prompt = `
-            Это история, которую мы сочиняем вместе.
-            Вот что уже произошло:
-            ${context || 'Пока ничего не произошло, только начало.'}
+    const prompt = `
+        Ты — ведущий интерактивной истории для двух игроков.
 
-            Придумай НЕОЖИДАННЫЙ ПОВОРОТ СЮЖЕТА для этой истории.
-            Поворот должен быть:
-            - Интересным и небанальным
-            - Логично вытекающим из контекста
-            - Коротким (1-2 предложения)
-            - Вдохновляющим для дальнейшего обсуждения
+        Вот что уже произошло в истории:
+        ${context}
 
-            Ответь ТОЛЬКО текстом поворота, без пояснений.
-        `;
+        Твоя задача — задать ОДИН ОТКРЫТЫЙ ВОПРОС, который:
+        1. Логично вытекает из контекста
+        2. Развивает историю глубже
+        3. Требует воображения и обсуждения
+        4. Не предполагает однозначного ответа
 
-        const response = await fetch('https://text.pollinations.ai/openai', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                model: 'openai',
-                messages: [
-                    { role: 'system', content: 'Ты — креативный помощник для генерации сюжетных поворотов. Отвечай коротко и интересно.' },
-                    { role: 'user', content: prompt }
-                ],
-                temperature: 0.9,
-                max_tokens: 80
-            })
-        });
+        Правила:
+        - Вопрос должен быть коротким (1-2 предложения)
+        - Не давай вариантов ответов
+        - Не предлагай выбор
+        - Просто задай вопрос, который продолжит историю
+        - Не используй эмодзи
 
-        let twistText = '';
+        Примеры:
+        - "Что ты видишь за дверью и почему это вызывает у тебя тревогу?"
+        - "Какое слово написано на стене и что оно означает для тебя?"
+        - "Если бы ты мог спросить у этого человека что-то одно, что бы ты спросил?"
 
-        if (response.ok) {
-            const data = await response.json();
-            twistText = data.choices?.[0]?.message?.content || random(FALLBACK_TWISTS);
-        } else {
-            console.warn('API вернул ошибку, используем запасной поворот');
-            twistText = random(FALLBACK_TWISTS);
-        }
+        ОТВЕТЬ ТОЛЬКО ТЕКСТОМ ВОПРОСА, без пояснений.
+    `;
 
-        twistText = twistText.replace(/^["']|["']$/g, '').trim();
+    callAI(prompt, 'question');
+}
 
+function callAI(prompt, type) {
+    fetch('https://text.pollinations.ai/openai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            model: 'openai',
+            messages: [
+                { role: 'system', content: 'Ты — креативный писатель и ведущий интерактивных историй. Отвечай коротко, интересно, без эмодзи.' },
+                { role: 'user', content: prompt }
+            ],
+            temperature: 0.85,
+            max_tokens: 150
+        })
+    })
+    .then(response => {
+        if (!response.ok) throw new Error('API error');
+        return response.json();
+    })
+    .then(data => {
+        const text = data.choices?.[0]?.message?.content?.trim() || 'Извините, не удалось сгенерировать текст. Попробуйте ещё раз.';
+        handleAIResponse(text, type);
+    })
+    .catch(error => {
+        console.error('AI Error:', error);
+        const fallback = getFallback(type);
+        handleAIResponse(fallback, type);
+    });
+}
+
+function handleAIResponse(text, type) {
+    if (type === 'opening') {
         state.story.push({
-            type: 'twist',
-            text: '🌀 Сюжетный поворот от ИИ',
-            answer: twistText,
-            timestamp: new Date().toISOString()
+            type: 'opening',
+            text: text,
+            answer: ''
         });
-
-        contentLabel.textContent = '🌀 Неожиданный поворот!';
-        contentText.textContent = twistText;
-        nextBtn.textContent = '🔥 Обсудили поворот!';
+        
+        contentText.textContent = text;
+        phaseBadge.textContent = 'Завязка';
+        statusBadge.textContent = 'Прочитайте';
+        contentLabel.textContent = 'Начало истории';
+        nextBtn.textContent = 'Понятно, продолжаем';
         nextBtn.disabled = false;
-        statusBadge.textContent = '🎭 Поворот!';
-        state.isTwistMode = true;
-
-        saveState();
-
-    } catch (error) {
-        console.error('Ошибка ИИ:', error);
-        const fallback = random(FALLBACK_TWISTS);
+        state.isGenerating = false;
+        
+        // Добавляем в историю
+        addHistoryItem('Завязка', text);
+        
+    } else if (type === 'question') {
+        state.lastQuestion = text;
         state.story.push({
-            type: 'twist',
-            text: '🌀 Сюжетный поворот (запасной)',
-            answer: fallback,
-            timestamp: new Date().toISOString()
+            type: 'question',
+            text: text,
+            answer: ''
         });
-        contentLabel.textContent = '🌀 Поворот (офлайн)';
-        contentText.textContent = fallback;
-        nextBtn.textContent = '🔥 Обсудили!';
+        
+        state.currentStep++;
+        stepCounter.textContent = `Вопрос ${state.currentStep}`;
+        
+        contentText.textContent = text;
+        phaseBadge.textContent = `Вопрос ${state.currentStep}`;
+        statusBadge.textContent = 'Обсуждение';
+        contentLabel.textContent = 'Обсудите вместе и найдите ответ';
+        nextBtn.textContent = 'Обсудили';
         nextBtn.disabled = false;
-        statusBadge.textContent = '🎭 Поворот!';
-        state.isTwistMode = true;
+        state.isGenerating = false;
+        state.isTwistMode = false;
+        
+        // Добавляем в историю
+        addHistoryItem(text, '');
+        
         saveState();
     }
+}
 
-    state.isGenerating = false;
+function getFallback(type) {
+    const openings = [
+        'Вы просыпаетесь в незнакомой комнате. На стене надпись: "Ты выбрал это сам". Рядом лежит билет на поезд до станции "Нигде".',
+        'Вы находите старую карту в книге. На ней отмечено место, которого не существует, но вы точно знаете, где оно находится.',
+        'Вам приходит письмо без обратного адреса. Внутри — ключ и записка: "Приходи в полночь. Узнаешь правду".'
+    ];
+    
+    if (type === 'opening') return random(openings);
+    
+    const questions = [
+        'Что вы чувствуете, когда видите это место?',
+        'Какая мысль приходит вам в голову первой?',
+        'Что вы делаете в этот момент?',
+        'Кто бы мог помочь вам в этой ситуации?',
+        'Что скрывается за этой дверью?'
+    ];
+    
+    return random(questions);
 }
 
 // ============================================================
-// 7. ЗАВЕРШЕНИЕ
+// 5. ОБРАБОТЧИКИ КНОПОК
 // ============================================================
 
+function nextStep() {
+    if (state.isGenerating) return;
+    
+    // Если это завязка — просто переходим к первому вопросу
+    if (state.story.length === 1 && state.story[0].type === 'opening') {
+        generateQuestion();
+        return;
+    }
+    
+    // Если это вопрос — сохраняем ответ (устный) и генерируем новый
+    if (state.lastQuestion) {
+        // Обновляем последний вопрос с ответом
+        const last = state.story[state.story.length - 1];
+        if (last && last.type === 'question') {
+            last.answer = 'обсуждено устно';
+            // Обновляем историю
+            const items = historyItems.querySelectorAll('.history-item');
+            if (items.length > 0) {
+                const lastItem = items[items.length - 1];
+                const answerSpan = lastItem.querySelector('.a');
+                if (answerSpan) {
+                    answerSpan.textContent = '→ обсуждено устно';
+                }
+            }
+        }
+        
+        state.lastQuestion = '';
+        saveState();
+        
+        // Генерируем новый вопрос или завершаем
+        if (state.currentStep >= 8) {
+            finishStory();
+        } else {
+            generateQuestion();
+        }
+    }
+}
+
 function finishStory() {
+    console.log('🏁 Завершаем историю');
+    state.isFinished = true;
+    
     const storyParts = state.story.map(s => {
-        if (s.type === 'opening') return `📖 ${s.text}`;
-        if (s.type === 'twist') return `🌀 ${s.answer}`;
-        return `${s.text}\n→ ${s.answer}`;
+        if (s.type === 'opening') return s.text;
+        if (s.type === 'question') {
+            const answer = s.answer || 'обсуждено';
+            return `${s.text}\n→ ${answer}`;
+        }
+        return s.text;
     });
-
+    
     const fullStory = storyParts.join('\n\n');
-    const twistCount = state.story.filter(s => s.type === 'twist').length;
-
+    
+    // Генерируем название
     const words = state.story
         .flatMap(s => (s.answer || s.text || '').split(' '))
         .filter(w => w.length > 3)
-        .slice(0, 5);
-
-    let title = '';
-    if (words.length > 2) {
-        title = words.slice(0, 3).map(w => w[0].toUpperCase() + w.slice(1)).join(' ') + '...';
-    } else {
-        title = 'Тайна, найденная на прогулке';
+        .slice(0, 4);
+    
+    let title = words.length > 1 ? words.slice(0, 3).join(' ') : 'История';
+    
+    // Если название слишком длинное
+    if (title.length > 30) {
+        title = title.slice(0, 30) + '...';
     }
-    const titles = ['Загадка', 'Открытие', 'Путешествие', 'Тайна', 'Приключение'];
-    if (Math.random() > 0.5) {
-        title = random(titles) + ' ' + title;
-    }
-
+    
     finalTitle.textContent = title;
-    finalStory.textContent = fullStory || 'История пока пуста...';
-    finalSteps.textContent = state.story.length;
-    finalTwists.textContent = twistCount;
-
-    localStorage.setItem('story_final_' + state.storyId, JSON.stringify({
-        title,
-        story: fullStory,
-        steps: state.story.length,
-        twists: twistCount,
-        date: new Date().toISOString()
-    }));
-
+    finalStory.textContent = fullStory;
+    finalSteps.textContent = state.story.filter(s => s.type === 'question').length;
+    
     showFinalScreen();
 }
 
 // ============================================================
-// 8. НАВИГАЦИЯ
+// 6. НАВИГАЦИЯ
 // ============================================================
 
 function showGameScreen() {
@@ -374,19 +364,18 @@ function showStartScreen() {
 }
 
 // ============================================================
-// 9. СОХРАНЕНИЕ
+// 7. СОХРАНЕНИЕ
 // ============================================================
 
 function saveState() {
     try {
         const data = {
-            currentPhase: state.currentPhase,
+            currentStep: state.currentStep,
             story: state.story,
-            phases: state.phases,
             players: state.players,
-            totalSteps: state.totalSteps,
             storyId: state.storyId,
-            isTwistMode: state.isTwistMode
+            lastQuestion: state.lastQuestion,
+            isFinished: state.isFinished
         };
         localStorage.setItem('story_game_state', JSON.stringify(data));
         loadBtn.style.display = 'block';
@@ -398,24 +387,49 @@ function loadState() {
         const raw = localStorage.getItem('story_game_state');
         if (!raw) return false;
         const data = JSON.parse(raw);
-        if (!data.story || !data.phases) return false;
-
-        state.currentPhase = data.currentPhase || 0;
+        if (!data.story) return false;
+        
+        state.currentStep = data.currentStep || 0;
         state.story = data.story || [];
-        state.phases = data.phases || [];
         state.players = data.players || ['Игрок 1', 'Игрок 2'];
-        state.totalSteps = data.totalSteps || 8;
         state.storyId = data.storyId || Date.now();
-        state.isTwistMode = data.isTwistMode || false;
-
-        if (state.currentPhase >= state.totalSteps) {
-            finishStory();
-            return true;
+        state.lastQuestion = data.lastQuestion || '';
+        state.isFinished = data.isFinished || false;
+        
+        if (state.isFinished || state.story.length === 0) {
+            return false;
         }
-
+        
+        // Восстанавливаем историю в UI
+        historyItems.innerHTML = '';
+        state.story.forEach(s => {
+            if (s.type === 'opening') {
+                addHistoryItem('Завязка', s.text);
+            } else if (s.type === 'question') {
+                addHistoryItem(s.text, s.answer || '');
+            }
+        });
+        
+        // Показываем последний вопрос
+        const last = state.story[state.story.length - 1];
+        if (last && last.type === 'question') {
+            contentText.textContent = last.text;
+            phaseBadge.textContent = `Вопрос ${state.currentStep}`;
+            statusBadge.textContent = 'Обсуждение';
+            contentLabel.textContent = 'Обсудите вместе и найдите ответ';
+            nextBtn.textContent = 'Обсудили';
+            stepCounter.textContent = `Вопрос ${state.currentStep}`;
+            state.lastQuestion = last.text;
+        } else if (last && last.type === 'opening') {
+            contentText.textContent = last.text;
+            phaseBadge.textContent = 'Завязка';
+            statusBadge.textContent = 'Прочитайте';
+            contentLabel.textContent = 'Начало истории';
+            nextBtn.textContent = 'Понятно, продолжаем';
+            stepCounter.textContent = 'Вопрос 0';
+        }
+        
         showGameScreen();
-        showStep();
-        saveState();
         return true;
     } catch (e) {
         return false;
@@ -423,15 +437,15 @@ function loadState() {
 }
 
 // ============================================================
-// 10. КОПИРОВАНИЕ
+// 8. КОПИРОВАНИЕ
 // ============================================================
 
 copyBtn.addEventListener('click', async () => {
-    const text = `📖 ${finalTitle.textContent}\n\n${finalStory.textContent}`;
+    const text = `${finalTitle.textContent}\n\n${finalStory.textContent}`;
     try {
         await navigator.clipboard.writeText(text);
-        copyBtn.textContent = '✅ Скопировано!';
-        setTimeout(() => copyBtn.textContent = '📋 Скопировать историю', 2000);
+        copyBtn.textContent = 'Скопировано!';
+        setTimeout(() => copyBtn.textContent = 'Скопировать историю', 2000);
     } catch {
         const ta = document.createElement('textarea');
         ta.value = text;
@@ -439,13 +453,13 @@ copyBtn.addEventListener('click', async () => {
         ta.select();
         document.execCommand('copy');
         ta.remove();
-        copyBtn.textContent = '✅ Скопировано!';
-        setTimeout(() => copyBtn.textContent = '📋 Скопировать историю', 2000);
+        copyBtn.textContent = 'Скопировано!';
+        setTimeout(() => copyBtn.textContent = 'Скопировать историю', 2000);
     }
 });
 
 // ============================================================
-// 11. ОБРАБОТЧИКИ
+// 9. ПОДКЛЮЧЕНИЕ КНОПОК
 // ============================================================
 
 startBtn.addEventListener('click', initGame);
@@ -456,32 +470,19 @@ loadBtn.addEventListener('click', () => {
     }
 });
 
-nextBtn.addEventListener('click', () => {
-    if (state.isTwistMode) {
-        state.isTwistMode = false;
-        if (state.currentPhase < state.totalSteps) {
-            showStep();
-            saveState();
-        } else {
-            finishStory();
-        }
-        return;
-    }
-    nextStep();
-});
+nextBtn.addEventListener('click', nextStep);
 
 finalBtn.addEventListener('click', finishStory);
 
 restartBtn.addEventListener('click', showStartScreen);
 
 // ============================================================
-// 12. АВТОЗАГРУЗКА
+// 10. АВТОЗАГРУЗКА
 // ============================================================
 
 if (localStorage.getItem('story_game_state')) {
     loadBtn.style.display = 'block';
 }
 
-console.log('📖 "Общая история" загружена!');
-console.log('💡 Придумано с ❤️ для прогулок и вдохновения');
-console.log('🌐 Использует Pollinations.ai для генерации поворотов');
+console.log('Общая история загружена');
+console.log('Использует Pollinations.ai для генерации вопросов');

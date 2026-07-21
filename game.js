@@ -7,7 +7,6 @@ let state = {
     storyId: Date.now(),
     isGenerating: false,
     isFinished: false,
-    step: 0,
     opening: '',
     clues: [],
     mystery: '',
@@ -41,7 +40,6 @@ function initGame() {
     state.storyId = Date.now();
     state.isGenerating = false;
     state.isFinished = false;
-    state.step = 0;
     state.opening = '';
     state.clues = [];
     state.mystery = '';
@@ -51,8 +49,16 @@ function initGame() {
     state.genre = '';
 
     document.getElementById('chat-messages').innerHTML = '';
-    document.getElementById('game-title').textContent = mode === 'detective' ? '🕵️ Дело' : '❓ Данетки';
-    updateUI(0, 'завязка', '#fbbf24');
+    
+    // Скрываем инвентарь в данетках
+    const inventoryToggle = document.getElementById('inventory-toggle');
+    if (mode === 'danetki') {
+        inventoryToggle.classList.add('hidden');
+    } else {
+        inventoryToggle.classList.remove('hidden');
+    }
+    
+    updateUI('завязка', '#fbbf24');
     showGameScreen();
 
     addSystemMessage(mode === 'detective' ? 'ИИ-сыщик готовит дело...' : 'ИИ загадывает загадку...');
@@ -98,6 +104,8 @@ function initGame() {
 3. Чётко определи персонажей (дай им имена или роли)
 4. Не используй "владелец", "некто" — только конкретные определения
 5. Разгадка должна быть ЛОГИЧНОЙ и ОБЪЯСНЯТЬ всю ситуацию
+6. НЕ ПРОТИВОРЕЧЬ САМ СЕБЕ — завязка и разгадка должны совпадать
+7. Если ты пишешь "мёртв" в завязке — в разгадке должно быть объяснение, как он умер
 
 ПРИМЕР ХОРОШЕЙ ЗАГАДКИ:
 "Мужчина лежит на полу в луже воды. Он мёртв. Рядом с ним — разбитый аквариум."
@@ -158,8 +166,7 @@ function initGame() {
         removeLastSystemMessage();
         addMessage('ai', text);
         
-        state.step++;
-        updateUI(state.step, mode === 'detective' ? 'расследование' : 'загадка', '#34d399');
+        updateUI(mode === 'detective' ? 'расследование' : 'загадка', '#34d399');
         
         setLoading(false);
         saveState();
@@ -168,7 +175,7 @@ function initGame() {
         console.error('Ошибка:', error);
         removeLastSystemMessage();
         addSystemMessage(`❌ Ошибка: ${error.message}`);
-        updateUI(0, 'ошибка', '#ef4444');
+        updateUI('ошибка', '#ef4444');
         setLoading(false);
     });
 }
@@ -184,7 +191,7 @@ function sendMessage() {
     input.value = '';
     setLoading(true);
     state.isGenerating = true;
-    updateUI(state.step, 'думает...', '#fbbf24');
+    updateUI('думает...', '#fbbf24');
 
     const lower = text.toLowerCase();
     if (lower.includes('закончить') || lower.includes('конец') || lower.includes('сдаюсь')) {
@@ -199,7 +206,7 @@ function sendMessage() {
             addSystemMessage(response);
             setLoading(false);
             state.isGenerating = false;
-            updateUI(state.step, 'ошибка', '#ef4444');
+            updateUI('ошибка', '#ef4444');
             return;
         }
         
@@ -222,8 +229,7 @@ function sendMessage() {
         addMessage('ai', response);
         setLoading(false);
         state.isGenerating = false;
-        updateUI(state.step, state.mode === 'detective' ? 'расследование' : 'загадка', '#34d399');
-        state.step++;
+        updateUI(state.mode === 'detective' ? 'расследование' : 'загадка', '#34d399');
         saveState();
     });
 }
@@ -231,7 +237,7 @@ function sendMessage() {
 function finishStory() {
     if (state.isFinished) return;
     state.isFinished = true;
-    updateUI(state.step, 'завершение', '#f59e0b');
+    updateUI('завершение', '#f59e0b');
     setLoading(true);
 
     addSystemMessage('ИИ подводит итоги...');
@@ -282,7 +288,7 @@ ${context}
         removeLastSystemMessage();
         document.getElementById('final-title').textContent = 'Ошибка';
         document.getElementById('final-story').textContent = '❌ API-ключ не найден';
-        document.getElementById('final-steps').textContent = state.step;
+        document.getElementById('final-steps').textContent = state.messages.length;
         showFinalScreen();
         return;
     }
@@ -318,7 +324,7 @@ ${context}
         removeLastSystemMessage();
         document.getElementById('final-title').textContent = state.mode === 'detective' ? 'Дело раскрыто' : 'Загадка разгадана';
         document.getElementById('final-story').textContent = text;
-        document.getElementById('final-steps').textContent = state.step;
+        document.getElementById('final-steps').textContent = state.messages.length;
         setLoading(false);
         showFinalScreen();
     })
@@ -327,7 +333,7 @@ ${context}
         removeLastSystemMessage();
         document.getElementById('final-title').textContent = 'Ошибка';
         document.getElementById('final-story').textContent = `❌ ${error.message}`;
-        document.getElementById('final-steps').textContent = state.step;
+        document.getElementById('final-steps').textContent = state.messages.length;
         setLoading(false);
         showFinalScreen();
     });
@@ -354,7 +360,6 @@ function saveState() {
         const data = {
             messages: state.messages,
             storyId: state.storyId,
-            step: state.step,
             isFinished: state.isFinished,
             opening: state.opening,
             clues: state.clues,
@@ -378,7 +383,6 @@ function loadState() {
 
         state.messages = data.messages || [];
         state.storyId = data.storyId || Date.now();
-        state.step = data.step || 0;
         state.isFinished = data.isFinished || false;
         state.opening = data.opening || '';
         state.clues = data.clues || [];
@@ -389,12 +393,20 @@ function loadState() {
         state.genre = data.genre || '';
         state.isGenerating = false;
 
+        // Скрываем инвентарь в данетках
+        const inventoryToggle = document.getElementById('inventory-toggle');
+        if (state.mode === 'danetki') {
+            inventoryToggle.classList.add('hidden');
+        } else {
+            inventoryToggle.classList.remove('hidden');
+        }
+
         if (state.isFinished) {
             const lastMessages = state.messages.filter(m => m.type === 'ai');
             if (lastMessages.length > 0) {
                 document.getElementById('final-title').textContent = state.mode === 'detective' ? 'Дело раскрыто' : 'Загадка разгадана';
                 document.getElementById('final-story').textContent = lastMessages[lastMessages.length - 1].text;
-                document.getElementById('final-steps').textContent = state.step;
+                document.getElementById('final-steps').textContent = state.messages.length;
                 showFinalScreen();
                 return true;
             }
@@ -410,8 +422,7 @@ function loadState() {
             chatMessages.appendChild(msg);
         });
 
-        document.getElementById('game-title').textContent = state.mode === 'detective' ? '🕵️ Дело' : '❓ Данетки';
-        updateUI(state.step, state.mode === 'detective' ? 'расследование' : 'загадка', '#34d399');
+        updateUI(state.mode === 'detective' ? 'расследование' : 'загадка', '#34d399');
         showGameScreen();
         return true;
     } catch (e) {
@@ -451,7 +462,6 @@ document.addEventListener('DOMContentLoaded', () => {
     
     document.getElementById('restart-btn').addEventListener('click', showStartScreen);
     
-    // Кнопка выхода
     document.getElementById('exit-btn').addEventListener('click', exitToMain);
     
     document.getElementById('copy-btn').addEventListener('click', async () => {

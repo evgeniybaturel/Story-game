@@ -7,7 +7,8 @@ let state = {
     storyId: Date.now(),
     isGenerating: false,
     isFinished: false,
-    step: 0
+    step: 0,
+    opening: ''
 };
 
 // ============================================================
@@ -54,46 +55,75 @@ function addSystemMessage(text) {
     chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
+function removeLastSystemMessage() {
+    const msgs = chatMessages.querySelectorAll('.message-system');
+    if (msgs.length > 0) {
+        chatMessages.removeChild(msgs[msgs.length - 1]);
+    }
+}
+
+// ============================================================
+// ОТПРАВКА ЗАПРОСА К POLLINATIONS (улучшенная)
+// ============================================================
+
 function callAI(messages, callback) {
-    const prompt = messages
+    // Собираем ВСЮ историю целиком
+    const fullContext = messages
         .filter(m => m.type !== 'system')
         .map(m => `${m.type === 'ai' ? 'ИИ' : 'Игроки'}: ${m.text}`)
         .join('\n');
 
+    // Последнее сообщение пользователя
+    const lastUserMessage = messages.filter(m => m.type === 'user').pop();
+    const userInput = lastUserMessage ? lastUserMessage.text : 'Начало расследования';
+
     const fullPrompt = `
-        Ты — ведущий детективной игры для двух игроков, которые гуляют по улице.
+Ты — ведущий детективной игры для двух игроков, которые гуляют по улице. Это ОДНА НЕПРЕРЫВНАЯ ИСТОРИЯ.
 
-        Это ЧАТ-расследование. Игроки пишут свои действия и вопросы, а ты отвечаешь.
+Вот ЗАВЯЗКА дела (это начало, от которого нельзя отходить):
+${state.opening || 'Вы находите тело на скамейке в парке. В руке мужчины — клочок бумаги со словом "ПЕРО". Рядом — следы, ведущие в сторону старого кинотеатра.'}
 
-        Важные правила:
-        1. Ты — ведущий и рассказчик. Игроки — сыщики.
-        2. Игроки могут делать ЧТО УГОДНО: осматривать, идти, спрашивать, разговаривать.
-        3. Ты должен логично реагировать на их действия.
-        4. Если игроки ошибаются — дай подсказку.
-        5. Если игроки близки к разгадке — подтверди или дай последнюю улику.
-        6. История должна быть увлекательной и логичной.
-        7. Никогда не говори «я не знаю». Всегда придумывай ответ.
-        8. Отвечай кратко (1-3 предложения). Будь атмосферным, но без эмодзи.
+Вот ВСЯ ИСТОРИЯ целиком (все сообщения):
+${fullContext}
 
-        Вот история диалога:
-        ${prompt}
+Сейчас игроки написали: "${userInput}"
 
-        Текущий запрос игроков (последнее сообщение): ${messages[messages.length - 1]?.text || 'Начало'}
+ТВОЙ ОТВЕТ ДОЛЖЕН БЫТЬ:
+1. Минимум 2 полных предложения
+2. Развивать историю — каждая улика ведёт к следующей
+3. Если игроки спросили про конкретное место — дай улику, связанную с ним
+4. Добавляй атмосферные детали: звуки, запахи, свет, погоду, настроение
+5. НЕ ОБРЫВАЙ мысль на полуслове
 
-        ОТВЕТЬ ТОЛЬКО ТЕКСТОМ. Не используй эмодзи.
-    `;
+ЗАПРЕЩЕНО:
+- Отвечать одним коротким предложением
+- Говорить "вы видите" и останавливаться
+- Повторять предыдущие улики
+- Использовать эмодзи
+
+ПРИМЕР ХОРОШЕГО ОТВЕТА:
+"Человек стоит у старого фонаря, но когда вы подходите ближе, он исчезает. На земле вы замечаете следы, которые ведут в сторону кинотеатра. Внутри вы слышите голоса."
+
+ПРИМЕР ПЛОХОГО ОТВЕТА (НИКОГДА ТАК НЕ ДЕЛАЙ):
+"Вдалеке вы видите человека." — это слишком коротко и не развивает историю.
+
+ОТВЕТЬ ТОЛЬКО ТЕКСТОМ (2-4 предложения). Без эмодзи.
+`;
 
     fetch('https://text.pollinations.ai/openai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-            model: 'openai',
+            model: 'llama-3', // попробуй также 'openai', 'qwen-7b', 'gpt-oss-20b'
             messages: [
-                { role: 'system', content: 'Ты — ведущий детективной игры. Отвечай только текстом, без эмодзи, без форматирования. Будь кратким, но атмосферным.' },
+                { 
+                    role: 'system', 
+                    content: `Ты — ведущий детективной игры. Отвечай ТОЛЬКО ПОЛНЫМИ ПРЕДЛОЖЕНИЯМИ (2-4 предложения). Никогда не обрывай мысль на полуслове. Добавляй атмосферные детали: звуки, запахи, погоду. Не используй эмодзи. Если игроки спросили про конкретное место — дай улику, связанную с этим местом.`
+                },
                 { role: 'user', content: fullPrompt }
             ],
-            temperature: 0.85,
-            max_tokens: 150
+            temperature: 0.9,
+            max_tokens: 300
         })
     })
     .then(response => {
@@ -101,7 +131,23 @@ function callAI(messages, callback) {
         return response.json();
     })
     .then(data => {
-        const text = data.choices?.[0]?.message?.content?.trim() || 'Извините, не удалось ответить. Попробуйте ещё раз.';
+        let text = data.choices?.[0]?.message?.content?.trim() || 'Извините, не удалось ответить. Попробуйте ещё раз.';
+        
+        // Проверяем, не обрывается ли текст
+        if (text.length > 0 && !text.endsWith('.') && !text.endsWith('!') && !text.endsWith('?')) {
+            text += ' Продолжайте расследование.';
+        }
+        
+        // Если ответ слишком короткий (< 50 символов) — добавляем развитие
+        if (text.length < 50) {
+            const continuations = [
+                ' Вы замечаете что-то странное вокруг.',
+                ' Это заставляет вас задуматься.',
+                ' Возможно, это ключ к разгадке.'
+            ];
+            text += continuations[Math.floor(Math.random() * continuations.length)];
+        }
+        
         callback(text);
     })
     .catch(error => {
@@ -111,13 +157,17 @@ function callAI(messages, callback) {
     });
 }
 
+// ============================================================
+// ЗАПАСНЫЕ ФРАЗЫ (если API не отвечает)
+// ============================================================
+
 function getFallback() {
     const fallbacks = [
-        'Вы замечаете что-то странное на земле. Следы ведут к старому фонарю.',
-        'В кармане вы находите клочок бумаги с непонятным словом.',
-        'Вдалеке вы видите человека, который наблюдает за вами.',
-        'На скамейке лежит забытый блокнот с записями.',
-        'Из кафе доносится разговор, который привлекает ваше внимание.'
+        'Вы замечаете что-то странное на земле. Следы ведут к старому фонарю, и там вы находите обрывок ткани с вышитой буквой "М".',
+        'Из кафе доносится разговор. Вы слышите голос, который говорит: "Она знала слишком много". Заходите внутрь и видите человека в красном пальто.',
+        'На земле вы находите ключ. Он подходит к двери старого особняка, который стоит на краю парка. Внутри слышны шаги.',
+        'Кинотеатр закрыт, но за углом вы видите открытое окно. На подоконнике лежит старый билет, и на нём есть отпечаток пальца.',
+        'Вдалеке вы видите фигуру, которая наблюдает за вами. Когда вы подходите ближе, она исчезает за углом.'
     ];
     return fallbacks[Math.floor(Math.random() * fallbacks.length)];
 }
@@ -134,6 +184,7 @@ function initGame() {
     state.isGenerating = false;
     state.isFinished = false;
     state.step = 0;
+    state.opening = '';
 
     chatMessages.innerHTML = '';
     chatStatus.textContent = '● завязка';
@@ -141,34 +192,71 @@ function initGame() {
 
     showGameScreen();
 
-    // Первое сообщение от ИИ (завязка)
     addSystemMessage('ИИ-сыщик готовит дело...');
     chatStatus.textContent = '● готовим дело';
     sendBtn.disabled = true;
     chatInput.disabled = true;
 
     const openingPrompt = `
-        Ты — ведущий детективной игры.
+Ты — ведущий детективной игры для двух игроков, которые гуляют по улице.
 
-        Напиши ЗАВЯЗКУ для расследования.
-        1. Опиши место, где находятся игроки (парк, улица, набережная)
-        2. Что они обнаружили (тело, пропажа, странный предмет)
-        3. Первая зацепка или странность
+Напиши ЗАВЯЗКУ для расследования.
+1. Опиши место, где находятся игроки (парк, улица, набережная, сквер)
+2. Что они обнаружили (тело, пропажа, странный предмет, следы)
+3. Первая зацепка или странность
 
-        Ответь ТОЛЬКО текстом (2-4 предложения). Без эмодзи.
-    `;
+Важно: завязка должна быть ИНТРИГУЮЩЕЙ, но давать пространство для расследования. Добавь атмосферные детали (звуки, запахи, погоду).
 
-    callAI([{ type: 'system', text: openingPrompt }], (text) => {
-        // Убираем системное сообщение
-        chatMessages.removeChild(chatMessages.lastChild);
+Ответь ТОЛЬКО текстом (3-4 предложения). Без эмодзи.
+`;
+
+    fetch('https://text.pollinations.ai/openai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            model: 'llama-3',
+            messages: [
+                { role: 'system', content: 'Ты — ведущий детективной игры. Отвечай только текстом, без эмодзи, без форматирования. Будь атмосферным.' },
+                { role: 'user', content: openingPrompt }
+            ],
+            temperature: 0.85,
+            max_tokens: 200
+        })
+    })
+    .then(response => {
+        if (!response.ok) throw new Error('API error');
+        return response.json();
+    })
+    .then(data => {
+        let text = data.choices?.[0]?.message?.content?.trim() || 'Вы находите тело на скамейке в парке. В руке мужчины — клочок бумаги со словом "ПЕРО". Рядом — следы, ведущие в сторону старого кинотеатра.';
         
+        // Проверяем, не обрывается ли текст
+        if (text.length > 0 && !text.endsWith('.') && !text.endsWith('!') && !text.endsWith('?')) {
+            text += ' Вы чувствуете, что это только начало.';
+        }
+        
+        state.opening = text;
+        removeLastSystemMessage();
         addMessage('ai', text);
         chatStatus.textContent = '● расследование';
         chatStatus.style.color = '#34d399';
         sendBtn.disabled = false;
         chatInput.disabled = false;
         chatInput.focus();
-
+        state.step++;
+        saveState();
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        const fallback = 'Вы находите тело на скамейке в парке. В руке мужчины — клочок бумаги со словом "ПЕРО". Рядом — следы, ведущие в сторону старого кинотеатра.';
+        state.opening = fallback;
+        removeLastSystemMessage();
+        addMessage('ai', fallback);
+        chatStatus.textContent = '● расследование';
+        chatStatus.style.color = '#34d399';
+        sendBtn.disabled = false;
+        chatInput.disabled = false;
+        chatInput.focus();
         state.step++;
         saveState();
     });
@@ -180,7 +268,6 @@ function sendMessage() {
     const text = chatInput.value.trim();
     if (!text) return;
 
-    // Добавляем сообщение игрока
     addMessage('user', text);
     chatInput.value = '';
     sendBtn.disabled = true;
@@ -189,7 +276,6 @@ function sendMessage() {
     chatStatus.textContent = '● думает...';
     chatStatus.style.color = '#fbbf24';
 
-    // Проверяем, не хочет ли игрок завершить
     const lower = text.toLowerCase();
     if (lower.includes('закончить') || lower.includes('конец') || lower.includes('сдаюсь')) {
         setTimeout(() => {
@@ -198,13 +284,6 @@ function sendMessage() {
         return;
     }
 
-    // Проверяем, не хочет ли игрок выдвинуть версию
-    if (lower.includes('версия') || lower.includes('предположение') || lower.includes('кажется')) {
-        // Добавляем системное сообщение
-        addSystemMessage('ИИ-сыщик анализирует вашу версию...');
-    }
-
-    // Отправляем запрос к ИИ
     callAI(state.messages, (response) => {
         addMessage('ai', response);
         sendBtn.disabled = false;
@@ -260,28 +339,54 @@ function finishStory() {
         .join('\n');
 
     const prompt = `
-        Детективное расследование завершено. Вот всё, что произошло:
-        ${context}
+Детективное расследование завершено. Вот всё, что произошло:
+${context}
 
-        Напиши ФИНАЛ:
-        1. Что на самом деле произошло
-        2. Кто был преступником (если тайна была)
-        3. Что игроки угадали или упустили
+Напиши ФИНАЛ:
+1. Что на самом деле произошло
+2. Кто был преступником (если тайна была)
+3. Что игроки угадали или упустили
+4. Добавь атмосферную концовку
 
-        Ответь ТОЛЬКО текстом (3-5 предложений). Без эмодзи.
-    `;
+Ответь ТОЛЬКО текстом (3-5 предложений). Без эмодзи.
+`;
 
-    callAI([{ type: 'system', text: prompt }], (text) => {
-        // Убираем системное сообщение
-        const msgs = chatMessages.querySelectorAll('.message-system');
-        if (msgs.length > 0) {
-            chatMessages.removeChild(msgs[msgs.length - 1]);
+    fetch('https://text.pollinations.ai/openai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            model: 'llama-3',
+            messages: [
+                { role: 'system', content: 'Ты — ведущий детективной игры. Отвечай только текстом, без эмодзи, без форматирования. Будь атмосферным.' },
+                { role: 'user', content: prompt }
+            ],
+            temperature: 0.85,
+            max_tokens: 250
+        })
+    })
+    .then(response => {
+        if (!response.ok) throw new Error('API error');
+        return response.json();
+    })
+    .then(data => {
+        let text = data.choices?.[0]?.message?.content?.trim() || 'Дело остаётся нераскрытым. Но вы сделали всё, что могли.';
+        
+        if (text.length > 0 && !text.endsWith('.') && !text.endsWith('!') && !text.endsWith('?')) {
+            text += ' Возможно, в другой раз вам повезёт больше.';
         }
-
+        
+        removeLastSystemMessage();
         finalTitle.textContent = 'Дело раскрыто';
         finalStory.textContent = text;
         finalSteps.textContent = state.step;
-
+        showFinalScreen();
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        removeLastSystemMessage();
+        finalTitle.textContent = 'Дело раскрыто';
+        finalStory.textContent = 'Дело остаётся нераскрытым. Но вы сделали всё, что могли.';
+        finalSteps.textContent = state.step;
         showFinalScreen();
     });
 }
@@ -318,7 +423,8 @@ function saveState() {
             messages: state.messages,
             storyId: state.storyId,
             step: state.step,
-            isFinished: state.isFinished
+            isFinished: state.isFinished,
+            opening: state.opening
         };
         localStorage.setItem('detective_chat_state', JSON.stringify(data));
         loadBtn.style.display = 'block';
@@ -336,10 +442,10 @@ function loadState() {
         state.storyId = data.storyId || Date.now();
         state.step = data.step || 0;
         state.isFinished = data.isFinished || false;
+        state.opening = data.opening || '';
         state.isGenerating = false;
 
         if (state.isFinished) {
-            // Показываем финал
             const lastMessages = state.messages.filter(m => m.type === 'ai');
             if (lastMessages.length > 0) {
                 finalTitle.textContent = 'Дело раскрыто';
@@ -351,7 +457,6 @@ function loadState() {
             return false;
         }
 
-        // Восстанавливаем чат
         chatMessages.innerHTML = '';
         state.messages.forEach(m => {
             const msg = document.createElement('div');
@@ -395,7 +500,7 @@ copyBtn.addEventListener('click', async () => {
 });
 
 // ============================================================
-// ОБРАБОТЧИКИ СОБЫТИЙ
+// ОБРАБОТЧИКИ
 // ============================================================
 
 startBtn.addEventListener('click', initGame);
@@ -425,5 +530,5 @@ if (localStorage.getItem('detective_chat_state')) {
     loadBtn.style.display = 'block';
 }
 
-console.log('🕵️ Детектив с чатом загружен');
-console.log('Пишите действия и вопросы, ИИ будет отвечать');
+console.log('🕵️ Детектив на прогулке загружен');
+console.log('Использует Pollinations.ai (модель: llama-3)');

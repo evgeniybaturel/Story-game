@@ -13,11 +13,17 @@
         <!-- СТАРТОВЫЙ ЭКРАН -->
         <div id="start-screen">
             <h1>Детектив на прогулке</h1>
-            <p class="sub">Расследуйте дело. Гуляйте. Общайтесь с ИИ-сыщиком.</p>
+            <p class="sub">Выберите режим игры и начните расследование</p>
             
             <div class="input-group">
                 <input type="password" id="api-key" placeholder="API-ключ Groq (получить на console.groq.com)">
                 <small>Ключ хранится только в вашем браузере</small>
+            </div>
+
+            <!-- ВЫБОР РЕЖИМА -->
+            <div class="mode-selector">
+                <button class="mode-btn active" id="mode-detective" data-mode="detective">🕵️ Детектив</button>
+                <button class="mode-btn" id="mode-danetki" data-mode="danetki">❓ Данетки</button>
             </div>
             
             <button class="btn" id="start-btn">Начать расследование</button>
@@ -27,7 +33,7 @@
         <!-- ИГРОВОЙ ЭКРАН (ЧАТ) -->
         <div id="game-screen" class="hidden">
             <div class="chat-header">
-                <span class="chat-title">Дело</span>
+                <span class="chat-title" id="game-title">Дело</span>
                 <span class="chat-status" id="chat-status">● в процессе</span>
                 <span class="chat-step" id="chat-step">Шаг 0</span>
                 <button class="inventory-toggle" id="inventory-toggle">📦</button>
@@ -52,6 +58,19 @@
                 </div>
                 <div class="modal-body" id="modal-body">
                     <!-- Улики будут здесь -->
+                </div>
+            </div>
+        </div>
+
+        <!-- МОДАЛЬНОЕ ОКНО (ПОДСКАЗКА ДЛЯ ДАНЕТОК) -->
+        <div id="hint-modal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <span class="modal-title">💡 Подсказка</span>
+                    <button class="modal-close" id="hint-modal-close">✕</button>
+                </div>
+                <div class="modal-body" id="hint-modal-body">
+                    <!-- Подсказка будет здесь -->
                 </div>
             </div>
         </div>

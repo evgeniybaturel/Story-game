@@ -5,7 +5,7 @@
 }
 
 body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif;
     background: #0a0a0f;
     color: #e0e0e0;
     min-height: 100vh;
@@ -22,12 +22,10 @@ body {
     background: #14141e;
     border-radius: 28px;
     padding: 24px 20px 32px;
-    box-shadow: 0 0 40px rgba(100, 60, 255, 0.08);
     border: 1px solid rgba(255, 255, 255, 0.04);
     min-height: 600px;
     display: flex;
     flex-direction: column;
-    transition: all 0.3s;
 }
 
 .hidden {
@@ -49,17 +47,25 @@ body {
 #start-screen h1 {
     font-size: 38px;
     font-weight: 700;
-    background: linear-gradient(135deg, #a78bfa, #60a5fa);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+    color: #f0f0f5;
     letter-spacing: -0.5px;
+}
+
+#start-screen h1::after {
+    content: '';
+    display: block;
+    width: 40px;
+    height: 3px;
+    background: linear-gradient(135deg, #a78bfa, #60a5fa);
+    margin: 8px auto 0;
+    border-radius: 2px;
 }
 
 #start-screen .sub {
     color: #8888aa;
     font-size: 16px;
-    margin-top: -8px;
     line-height: 1.5;
+    margin-top: 4px;
 }
 
 .input-group {
@@ -104,7 +110,6 @@ body {
     user-select: none;
     width: 100%;
     text-align: center;
-    box-shadow: 0 4px 20px rgba(100, 60, 255, 0.25);
 }
 
 .btn:active {
@@ -114,7 +119,6 @@ body {
 
 .btn-secondary {
     background: #1e1e2e;
-    box-shadow: none;
     border: 1px solid #2a2a40;
     color: #aaaacc;
 }
@@ -125,7 +129,6 @@ body {
 
 .btn-success {
     background: linear-gradient(135deg, #34d399, #059669);
-    box-shadow: 0 4px 20px rgba(52, 211, 153, 0.2);
 }
 
 /* ===== ИГРОВОЙ ЭКРАН ===== */
@@ -169,6 +172,7 @@ body {
     font-weight: 600;
     text-align: center;
     border: 1px solid #2a2a50;
+    letter-spacing: 0.3px;
 }
 
 #game-screen .content {
@@ -176,7 +180,7 @@ body {
     display: flex;
     flex-direction: column;
     gap: 14px;
-    min-height: 280px;
+    min-height: 200px;
     justify-content: center;
 }
 
@@ -189,19 +193,65 @@ body {
 }
 
 #game-screen .content .text {
-    font-size: 24px;
-    line-height: 1.5;
-    font-weight: 500;
+    font-size: 22px;
+    line-height: 1.6;
+    font-weight: 400;
     color: #f0f0f5;
     padding: 8px 0;
     word-break: break-word;
 }
 
+/* ===== ИСТОРИЯ ===== */
+.history {
+    background: #1a1a28;
+    border-radius: 16px;
+    padding: 14px 16px;
+    max-height: 120px;
+    overflow-y: auto;
+    border: 1px solid #1e1e2e;
+    margin-top: 4px;
+}
+
+.history-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #555577;
+    margin-bottom: 8px;
+}
+
+.history-items {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.history-item {
+    font-size: 13px;
+    color: #8888aa;
+    line-height: 1.4;
+    padding: 4px 0;
+    border-bottom: 1px solid #14141e;
+}
+
+.history-item:last-child {
+    border-bottom: none;
+}
+
+.history-item .q {
+    color: #a78bfa;
+}
+
+.history-item .a {
+    color: #8888bb;
+}
+
+/* ===== КНОПКИ ===== */
 #game-screen .actions {
     display: flex;
     flex-direction: column;
     gap: 10px;
-    margin-top: 8px;
+    margin-top: 4px;
 }
 
 #game-screen .actions .btn {
@@ -219,22 +269,30 @@ body {
 }
 
 #final-screen .title {
-    font-size: 32px;
+    font-size: 28px;
     font-weight: 700;
-    background: linear-gradient(135deg, #fbbf24, #f59e0b);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+    color: #f0f0f5;
     line-height: 1.2;
+}
+
+#final-screen .title::after {
+    content: '';
+    display: block;
+    width: 30px;
+    height: 3px;
+    background: linear-gradient(135deg, #fbbf24, #f59e0b);
+    margin-top: 8px;
+    border-radius: 2px;
 }
 
 #final-screen .story-text {
     background: #1a1a28;
     border-radius: 16px;
     padding: 18px;
-    font-size: 16px;
+    font-size: 15px;
     line-height: 1.7;
     color: #d0d0e8;
-    max-height: 300px;
+    max-height: 250px;
     overflow-y: auto;
     border: 1px solid #1e1e2e;
     white-space: pre-wrap;
@@ -243,7 +301,6 @@ body {
 #final-screen .stats {
     display: flex;
     gap: 12px;
-    flex-wrap: wrap;
 }
 
 #final-screen .stats .stat {
@@ -254,7 +311,6 @@ body {
     color: #8888bb;
     border: 1px solid #1e1e2e;
     flex: 1;
-    min-width: 80px;
     text-align: center;
 }
 
@@ -266,12 +322,12 @@ body {
     margin-top: 4px;
 }
 
-/* ===== АНИМАЦИЯ ЗАГРУЗКИ ===== */
+/* ===== ЗАГРУЗКА ===== */
 .loader {
     display: inline-block;
-    width: 20px;
-    height: 20px;
-    border: 3px solid #2a2a50;
+    width: 18px;
+    height: 18px;
+    border: 2px solid #2a2a50;
     border-top-color: #7c5cfc;
     border-radius: 50%;
     animation: spin 0.7s linear infinite;
@@ -296,14 +352,17 @@ body {
         font-size: 30px;
     }
     #game-screen .content .text {
-        font-size: 20px;
+        font-size: 19px;
     }
     #final-screen .title {
-        font-size: 26px;
+        font-size: 24px;
     }
     .btn {
         font-size: 17px;
         padding: 14px 20px;
+    }
+    .history {
+        max-height: 90px;
     }
 }
 
@@ -313,10 +372,11 @@ body {
         min-height: 700px;
     }
     #game-screen .content .text {
-        font-size: 28px;
+        font-size: 26px;
     }
 }
 
+/* ===== СКРОЛЛ ===== */
 ::-webkit-scrollbar {
     width: 4px;
 }
@@ -326,4 +386,4 @@ body {
 ::-webkit-scrollbar-thumb {
     background: #2a2a50;
     border-radius: 4px;
-}
+    }

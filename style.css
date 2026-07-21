@@ -139,6 +139,41 @@ body {
     background: linear-gradient(135deg, #34d399, #059669);
 }
 
+/* ===== ВЫБОР РЕЖИМА ===== */
+.mode-selector {
+    display: flex;
+    gap: 12px;
+    width: 100%;
+    padding: 4px 0;
+}
+
+.mode-btn {
+    flex: 1;
+    padding: 14px 12px;
+    border: 2px solid #2a2a40;
+    border-radius: 14px;
+    background: #1a1a28;
+    color: #8888bb;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    touch-action: manipulation;
+    user-select: none;
+    text-align: center;
+}
+
+.mode-btn:active {
+    transform: scale(0.96);
+}
+
+.mode-btn.active {
+    border-color: #7c5cfc;
+    background: rgba(124, 92, 252, 0.12);
+    color: #f0f0f5;
+    box-shadow: 0 0 20px rgba(124, 92, 252, 0.08);
+}
+
 /* ===== ИГРОВОЙ ЭКРАН ===== */
 #game-screen {
     flex: 1;
@@ -497,6 +532,10 @@ body {
         width: 32px;
         height: 32px;
         font-size: 16px;
+    }
+    .mode-btn {
+        font-size: 14px;
+        padding: 10px 8px;
     }
 }
 

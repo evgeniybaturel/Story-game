@@ -1,5 +1,5 @@
 // ============================================================
-// UI — ИНТЕРФЕЙС, СООБЩЕНИЯ, МОДАЛКА, ФИЧИ
+// UI — ИНТЕРФЕЙС, СООБЩЕНИЯ, МОДАЛКА, ИНВЕНТАРЬ
 // ============================================================
 
 // ============================================================
@@ -68,6 +68,7 @@ function addMessage(type, text) {
     chatMessages.appendChild(msg);
     typeMessage(msg, text);
     chatMessages.scrollTop = chatMessages.scrollHeight;
+    window.state.messages.push({ type, text, timestamp: new Date().toISOString() });
     return msg;
 }
 
@@ -77,6 +78,7 @@ function addMessageInstant(type, text) {
     msg.textContent = text;
     chatMessages.appendChild(msg);
     chatMessages.scrollTop = chatMessages.scrollHeight;
+    window.state.messages.push({ type, text, timestamp: new Date().toISOString() });
     return msg;
 }
 
@@ -96,17 +98,24 @@ function removeLastSystemMessage() {
 }
 
 // ============================================================
-// МОДАЛЬНОЕ ОКНО
+// МОДАЛЬНОЕ ОКНО (ИНВЕНТАРЬ)
 // ============================================================
 
 const modal = document.getElementById('modal');
-const modalTitle = document.getElementById('modal-title');
 const modalBody = document.getElementById('modal-body');
 const modalClose = document.getElementById('modal-close');
 
-function openModal(title, content) {
-    modalTitle.textContent = title;
-    modalBody.innerHTML = content;
+function openInventory() {
+    if (window.state.clues.length === 0) {
+        modalBody.innerHTML = '<div class="empty">Улики пока не найдены</div>';
+    } else {
+        modalBody.innerHTML = window.state.clues.map((clue, i) => `
+            <div class="clue-item">
+                <div class="clue-text">${i + 1}. ${clue}</div>
+                <div class="clue-meta">Найдено на шаге ${window.state.step}</div>
+            </div>
+        `).join('');
+    }
     modal.classList.remove('hidden');
 }
 
@@ -120,56 +129,11 @@ modal.addEventListener('click', (e) => {
 });
 
 // ============================================================
-// РЕНДЕРИНГ ИНВЕНТАРЯ И ЖУРНАЛА
-// ============================================================
-
-function renderInventory() {
-    if (state.clues.length === 0) {
-        return '<div class="empty">Улики пока не найдены</div>';
-    }
-    
-    return state.clues.map((clue, i) => `
-        <div class="clue-item">
-            <div class="clue-text">${i + 1}. ${clue}</div>
-            <div class="clue-meta">Найдено на шаге ${state.step}</div>
-        </div>
-    `).join('');
-}
-
-function renderJournal() {
-    if (state.journal.length === 0) {
-        return '<div class="empty">История пуста</div>';
-    }
-    
-    return state.journal.map(item => `
-        <div class="journal-item">
-            <div class="j-type">${item.type}</div>
-            <div class="j-text">${item.text}</div>
-        </div>
-    `).join('');
-}
-
-// ============================================================
-// 3 ФИЧИ
+// ПОДКЛЮЧЕНИЕ КНОПОК UI
 // ============================================================
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Подсказка
-    document.getElementById('hint-btn').addEventListener('click', () => {
-        if (state.isGenerating || state.isFinished) return;
-        document.getElementById('chat-input').value = 'Подскажи, что мне делать дальше';
-        sendMessage();
-    });
-
-    // Инвентарь
-    document.getElementById('inventory-btn').addEventListener('click', () => {
-        openModal('📦 Инвентарь', renderInventory());
-    });
-
-    // Журнал
-    document.getElementById('journal-btn').addEventListener('click', () => {
-        openModal('📜 Журнал', renderJournal());
-    });
+    document.getElementById('inventory-toggle').addEventListener('click', openInventory);
 });
 
 console.log('🎨 UI загружен');

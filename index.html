@@ -17,7 +17,7 @@
             
             <div class="input-group">
                 <input type="password" id="api-key" placeholder="API-ключ Groq (получить на console.groq.com)">
-                <small style="color:#555577; font-size:12px;">Ключ хранится только в вашем браузере</small>
+                <small>Ключ хранится только в вашем браузере</small>
             </div>
             
             <button class="btn" id="start-btn">Начать расследование</button>
@@ -29,24 +29,36 @@
             <div class="chat-header">
                 <span class="chat-title">Дело</span>
                 <span class="chat-status" id="chat-status">● в процессе</span>
+                <span class="chat-step" id="chat-step">Шаг 0</span>
             </div>
 
             <div class="chat-messages" id="chat-messages">
                 <!-- Сообщения будут появляться здесь -->
             </div>
 
-            <div class="quick-actions" id="quick-actions">
-                <button class="quick-btn" data-action="Осмотреть место">Осмотреть</button>
-                <button class="quick-btn" data-action="Пойти к...">Пойти</button>
-                <button class="quick-btn" data-action="Спросить">Спросить</button>
-                <button class="quick-btn" data-action="Искать улики">Искать</button>
-                <button class="quick-btn" data-action="Выдвинуть версию">Версия</button>
-                <button class="quick-btn" data-action="Закончить расследование">Закончить</button>
-            </div>
-
             <div class="chat-input-area">
                 <input type="text" id="chat-input" placeholder="Напишите действие или вопрос..." autocomplete="off">
                 <button class="send-btn" id="send-btn">→</button>
+            </div>
+
+            <!-- 3 КНОПКИ-ФИЧИ -->
+            <div class="toolbar">
+                <button class="toolbar-btn" id="hint-btn" title="Подсказка">💡</button>
+                <button class="toolbar-btn" id="inventory-btn" title="Инвентарь">📦</button>
+                <button class="toolbar-btn" id="journal-btn" title="Журнал">📜</button>
+            </div>
+        </div>
+
+        <!-- МОДАЛЬНОЕ ОКНО (ИНВЕНТАРЬ / ЖУРНАЛ) -->
+        <div id="modal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <span class="modal-title" id="modal-title">Инвентарь</span>
+                    <button class="modal-close" id="modal-close">✕</button>
+                </div>
+                <div class="modal-body" id="modal-body">
+                    <!-- Контент будет здесь -->
+                </div>
             </div>
         </div>
 

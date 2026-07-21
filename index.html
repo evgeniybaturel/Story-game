@@ -13,38 +13,34 @@
         <!-- СТАРТОВЫЙ ЭКРАН -->
         <div id="start-screen">
             <h1>Детектив на прогулке</h1>
-            <p class="sub">Интерактивное расследование. Гуляйте, ищите улики, раскрывайте тайну.</p>
-
-            <div class="input-group">
-                <input type="text" id="player1-name" placeholder="Имя игрока 1" value="Аня">
-                <input type="text" id="player2-name" placeholder="Имя игрока 2" value="Макс">
-            </div>
-
+            <p class="sub">Расследуйте дело. Гуляйте. Общайтесь с ИИ-сыщиком.</p>
             <button class="btn" id="start-btn">Начать расследование</button>
             <button class="btn btn-secondary" id="load-btn" style="display:none;">Продолжить сохранённое</button>
         </div>
 
-        <!-- ИГРОВОЙ ЭКРАН -->
+        <!-- ИГРОВОЙ ЭКРАН (ЧАТ) -->
         <div id="game-screen" class="hidden">
-            <div class="header">
-                <span class="step-counter" id="step-counter">Шаг 1</span>
-                <span class="status" id="status-badge">Завязка</span>
+            <div class="chat-header">
+                <span class="chat-title">Дело</span>
+                <span class="chat-status" id="chat-status">● в процессе</span>
             </div>
 
-            <div class="content" id="content-area">
-                <div class="label" id="content-label">Ситуация</div>
-                <div class="text" id="content-text">Загрузка...</div>
+            <div class="chat-messages" id="chat-messages">
+                <!-- Сообщения будут появляться здесь -->
             </div>
 
-            <div class="history" id="history-area">
-                <div class="history-label">Журнал улик</div>
-                <div class="history-items" id="history-items"></div>
+            <div class="quick-actions" id="quick-actions">
+                <button class="quick-btn" data-action="Осмотреть место">Осмотреть</button>
+                <button class="quick-btn" data-action="Пойти к...">Пойти</button>
+                <button class="quick-btn" data-action="Спросить">Спросить</button>
+                <button class="quick-btn" data-action="Искать улики">Искать</button>
+                <button class="quick-btn" data-action="Выдвинуть версию">Версия</button>
+                <button class="quick-btn" data-action="Закончить расследование">Закончить</button>
             </div>
 
-            <div class="actions">
-                <button class="btn" id="next-btn">Обсудили</button>
-                <button class="btn btn-secondary" id="version-btn">Выдвинуть версию</button>
-                <button class="btn btn-secondary" id="final-btn">Сдаться</button>
+            <div class="chat-input-area">
+                <input type="text" id="chat-input" placeholder="Напишите действие или вопрос..." autocomplete="off">
+                <button class="send-btn" id="send-btn">→</button>
             </div>
         </div>
 
@@ -53,8 +49,7 @@
             <div class="title" id="final-title">Дело раскрыто</div>
             <div class="story-text" id="final-story">Текст...</div>
             <div class="stats">
-                <div class="stat">Шагов <span id="final-steps">0</span></div>
-                <div class="stat">Улик <span id="final-clues">0</span></div>
+                <div class="stat">Сообщений <span id="final-steps">0</span></div>
             </div>
             <button class="btn btn-success" id="copy-btn">Скопировать</button>
             <button class="btn btn-secondary" id="restart-btn">Новое дело</button>

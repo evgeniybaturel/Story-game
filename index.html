@@ -20,7 +20,6 @@
                 <small>Ключ хранится только в вашем браузере</small>
             </div>
 
-            <!-- ВЫБОР РЕЖИМА -->
             <div class="mode-selector">
                 <button class="mode-btn active" id="mode-detective" data-mode="detective">🕵️ Детектив</button>
                 <button class="mode-btn" id="mode-danetki" data-mode="danetki">❓ Данетки</button>
@@ -30,18 +29,17 @@
             <button class="btn btn-secondary" id="load-btn" style="display:none;">Продолжить сохранённое</button>
         </div>
 
-        <!-- ИГРОВОЙ ЭКРАН (ЧАТ) -->
+        <!-- ИГРОВОЙ ЭКРАН -->
         <div id="game-screen" class="hidden">
             <div class="chat-header">
+                <button class="exit-btn" id="exit-btn" title="Выйти на главный экран">✕</button>
                 <span class="chat-title" id="game-title">🕵️ Дело</span>
                 <span class="chat-status" id="chat-status">● в процессе</span>
                 <span class="chat-step" id="chat-step">Шаг 0</span>
                 <button class="inventory-toggle" id="inventory-toggle">📦</button>
             </div>
 
-            <div class="chat-messages" id="chat-messages">
-                <!-- Сообщения будут появляться здесь -->
-            </div>
+            <div class="chat-messages" id="chat-messages"></div>
 
             <div class="chat-input-area">
                 <input type="text" id="chat-input" placeholder="Напишите действие или вопрос..." autocomplete="off">
@@ -56,9 +54,18 @@
                     <span class="modal-title">📦 Инвентарь</span>
                     <button class="modal-close" id="modal-close">✕</button>
                 </div>
-                <div class="modal-body" id="modal-body">
-                    <!-- Улики будут здесь -->
+                <div class="modal-body" id="modal-body"></div>
+            </div>
+        </div>
+
+        <!-- МОДАЛЬНОЕ ОКНО (ПОДСКАЗКА ДЛЯ ДАНЕТОК) -->
+        <div id="hint-modal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <span class="modal-title">💡 Подсказка</span>
+                    <button class="modal-close" id="hint-modal-close">✕</button>
                 </div>
+                <div class="modal-body" id="hint-modal-body"></div>
             </div>
         </div>
 
@@ -79,4 +86,4 @@
     <script src="game.js"></script>
     <script src="ui.js"></script>
 </body>
-</html>
+    </html>

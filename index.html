@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Общая история</title>
+    <title>Детектив на прогулке</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -12,52 +12,52 @@
 
         <!-- СТАРТОВЫЙ ЭКРАН -->
         <div id="start-screen">
-            <h1>Общая история</h1>
-            <p class="sub">Кооперативная игра для прогулок. Обсуждайте, фантазируйте, создавайте историю вместе.</p>
+            <h1>Детектив на прогулке</h1>
+            <p class="sub">Интерактивное расследование. Гуляйте, ищите улики, раскрывайте тайну.</p>
 
             <div class="input-group">
                 <input type="text" id="player1-name" placeholder="Имя игрока 1" value="Аня">
                 <input type="text" id="player2-name" placeholder="Имя игрока 2" value="Макс">
             </div>
 
-            <button class="btn" id="start-btn">Начать историю</button>
-            <button class="btn btn-secondary" id="load-btn" style="display:none;">Продолжить сохранённую</button>
+            <button class="btn" id="start-btn">Начать расследование</button>
+            <button class="btn btn-secondary" id="load-btn" style="display:none;">Продолжить сохранённое</button>
         </div>
 
         <!-- ИГРОВОЙ ЭКРАН -->
         <div id="game-screen" class="hidden">
             <div class="header">
-                <span class="step-counter" id="step-counter">Вопрос 1</span>
-                <span class="status" id="status-badge">Обсуждение</span>
+                <span class="step-counter" id="step-counter">Шаг 1</span>
+                <span class="status" id="status-badge">Завязка</span>
             </div>
 
-            <div class="phase-badge" id="phase-badge">Завязка</div>
-
             <div class="content" id="content-area">
-                <div class="label" id="content-label">Текст</div>
+                <div class="label" id="content-label">Ситуация</div>
                 <div class="text" id="content-text">Загрузка...</div>
             </div>
 
             <div class="history" id="history-area">
-                <div class="history-label">Журнал истории</div>
+                <div class="history-label">Журнал улик</div>
                 <div class="history-items" id="history-items"></div>
             </div>
 
             <div class="actions">
                 <button class="btn" id="next-btn">Обсудили</button>
-                <button class="btn btn-secondary" id="final-btn">Завершить</button>
+                <button class="btn btn-secondary" id="version-btn">Выдвинуть версию</button>
+                <button class="btn btn-secondary" id="final-btn">Сдаться</button>
             </div>
         </div>
 
         <!-- ФИНАЛЬНЫЙ ЭКРАН -->
         <div id="final-screen" class="hidden">
-            <div class="title" id="final-title">Название истории</div>
-            <div class="story-text" id="final-story">Текст истории...</div>
+            <div class="title" id="final-title">Дело раскрыто</div>
+            <div class="story-text" id="final-story">Текст...</div>
             <div class="stats">
-                <div class="stat">Вопросов <span id="final-steps">0</span></div>
+                <div class="stat">Шагов <span id="final-steps">0</span></div>
+                <div class="stat">Улик <span id="final-clues">0</span></div>
             </div>
-            <button class="btn btn-success" id="copy-btn">Скопировать историю</button>
-            <button class="btn btn-secondary" id="restart-btn">Новая игра</button>
+            <button class="btn btn-success" id="copy-btn">Скопировать</button>
+            <button class="btn btn-secondary" id="restart-btn">Новое дело</button>
         </div>
 
     </div>

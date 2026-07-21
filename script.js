@@ -2,7 +2,7 @@
 // СОСТОЯНИЕ
 // ============================================================
 
-window.state = {
+let state = {
     messages: [],
     storyId: Date.now(),
     isGenerating: false,
@@ -43,15 +43,15 @@ async function callGroq(messages, systemPrompt, callback) {
     const lastUserMessage = messages.filter(m => m.type === 'user').pop();
     const userInput = lastUserMessage ? lastUserMessage.text : 'Начало расследования';
 
-    const allClues = window.state.clues.length > 0 
-        ? `\nУЖЕ НАЙДЕННЫЕ УЛИКИ (НЕ ПОВТОРЯЙ ИХ):\n${window.state.clues.map((c, i) => `${i+1}. ${c}`).join('\n')}`
+    const allClues = state.clues.length > 0 
+        ? `\nУЖЕ НАЙДЕННЫЕ УЛИКИ (НЕ ПОВТОРЯЙ ИХ):\n${state.clues.map((c, i) => `${i+1}. ${c}`).join('\n')}`
         : '';
 
     const summary = `
 КРАТКАЯ СВОДКА:
-- Завязка: ${window.state.opening || 'нет'}
-- Тайна: ${window.state.mystery || 'неизвестна'}
-- Улик найдено: ${window.state.clues.length}
+- Завязка: ${state.opening || 'нет'}
+- Тайна: ${state.mystery || 'неизвестна'}
+- Улик найдено: ${state.clues.length}
 `;
 
     const userPrompt = `
@@ -127,7 +127,7 @@ ${fullHistory}
         let text = parsed.text || 'Продолжайте расследование.';
         let clue = parsed.clue || '';
         
-        if (clue && window.state.clues.some(c => c.toLowerCase() === clue.toLowerCase())) {
+        if (clue && state.clues.some(c => c.toLowerCase() === clue.toLowerCase())) {
             clue = '';
         }
         
@@ -155,14 +155,14 @@ function initGame() {
         return;
     }
     
-    window.state.messages = [];
-    window.state.storyId = Date.now();
-    window.state.isGenerating = false;
-    window.state.isFinished = false;
-    window.state.step = 0;
-    window.state.opening = '';
-    window.state.clues = [];
-    window.state.mystery = '';
+    state.messages = [];
+    state.storyId = Date.now();
+    state.isGenerating = false;
+    state.isFinished = false;
+    state.step = 0;
+    state.opening = '';
+    state.clues = [];
+    state.mystery = '';
 
     document.getElementById('chat-messages').innerHTML = '';
     updateUI(0, 'завязка', '#fbbf24');
@@ -178,9 +178,13 @@ function initGame() {
 ОТВЕТЬ В ФОРМАТЕ JSON:
 {
   "text": "Завязка (2-3 предложения, атмосферно)",
-  "mystery": "Тайна (одна фраза)",
-  "clue": "Первая улика (одна фраза)"
+  "mystery": "Тайна (одна фраза)"
 }
+
+ПРАВИЛА:
+- Опиши место и что нашли
+- НЕ ДОБАВЛЯЙ УЛИКУ в завязку
+- Игрок сам должен найти первую улику в процессе расследования
 `;
 
     fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -223,20 +227,17 @@ function initGame() {
         
         let text = parsed.text || 'Вы находите загадочный предмет.';
         let mystery = parsed.mystery || 'Выяснить, что произошло';
-        let clue = parsed.clue || '';
         
-        window.state.opening = text;
-        window.state.mystery = mystery;
-        
-        if (clue) {
-            window.state.clues.push(clue);
-        }
+        state.opening = text;
+        state.mystery = mystery;
         
         removeLastSystemMessage();
         addMessage('ai', text);
-        updateUI(0, 'расследование', '#34d399');
+        
+        state.step++;
+        updateUI(state.step, 'расследование', '#34d399');
+        
         setLoading(false);
-        window.state.step++;
         saveState();
     })
     .catch(error => {
@@ -249,7 +250,7 @@ function initGame() {
 }
 
 function sendMessage() {
-    if (window.state.isGenerating || window.state.isFinished) return;
+    if (state.isGenerating || state.isFinished) return;
 
     const input = document.getElementById('chat-input');
     const text = input.value.trim();
@@ -258,8 +259,8 @@ function sendMessage() {
     addMessageInstant('user', text);
     input.value = '';
     setLoading(true);
-    window.state.isGenerating = true;
-    updateUI(window.state.step, 'думает...', '#fbbf24');
+    state.isGenerating = true;
+    updateUI(state.step, 'думает...', '#fbbf24');
 
     const lower = text.toLowerCase();
     if (lower.includes('закончить') || lower.includes('конец') || lower.includes('сдаюсь')) {
@@ -269,40 +270,40 @@ function sendMessage() {
 
     const systemPrompt = 'Ты — ведущий детективной игры. Отвечай по делу, коротко, без воды. НЕ НАЧИНАЙ ЗАНОВО. Отвечай ТОЛЬКО В ФОРМАТЕ JSON.';
 
-    callGroq(window.state.messages, systemPrompt, (response, clue) => {
+    callGroq(state.messages, systemPrompt, (response, clue) => {
         if (response.startsWith('❌')) {
             addSystemMessage(response);
             setLoading(false);
-            window.state.isGenerating = false;
-            updateUI(window.state.step, 'ошибка', '#ef4444');
+            state.isGenerating = false;
+            updateUI(state.step, 'ошибка', '#ef4444');
             return;
         }
         
         if (clue) {
-            const exists = window.state.clues.some(c => c.toLowerCase() === clue.toLowerCase());
+            const exists = state.clues.some(c => c.toLowerCase() === clue.toLowerCase());
             if (!exists) {
-                window.state.clues.push(clue);
+                state.clues.push(clue);
             }
         }
         
         addMessage('ai', response);
         setLoading(false);
-        window.state.isGenerating = false;
-        updateUI(window.state.step, 'расследование', '#34d399');
-        window.state.step++;
+        state.isGenerating = false;
+        updateUI(state.step, 'расследование', '#34d399');
+        state.step++;
         saveState();
     });
 }
 
 function finishStory() {
-    if (window.state.isFinished) return;
-    window.state.isFinished = true;
-    updateUI(window.state.step, 'завершение', '#f59e0b');
+    if (state.isFinished) return;
+    state.isFinished = true;
+    updateUI(state.step, 'завершение', '#f59e0b');
     setLoading(true);
 
     addSystemMessage('ИИ-сыщик подводит итоги...');
 
-    const context = window.state.messages
+    const context = state.messages
         .filter(m => m.type === 'ai' || m.type === 'user')
         .map(m => `${m.type === 'ai' ? 'ИИ' : 'Игроки'}: ${m.text}`)
         .join('\n');
@@ -312,7 +313,7 @@ function finishStory() {
 Детективное расследование завершено. Вот всё, что произошло:
 ${context}
 
-Игроки нашли улики: ${window.state.clues.join(', ')}
+Игроки нашли улики: ${state.clues.join(', ')}
 
 Напиши ФИНАЛ:
 1. Что на самом деле произошло
@@ -327,7 +328,7 @@ ${context}
         removeLastSystemMessage();
         document.getElementById('final-title').textContent = 'Ошибка';
         document.getElementById('final-story').textContent = '❌ API-ключ не найден';
-        document.getElementById('final-steps').textContent = window.state.step;
+        document.getElementById('final-steps').textContent = state.step;
         showFinalScreen();
         return;
     }
@@ -363,7 +364,7 @@ ${context}
         removeLastSystemMessage();
         document.getElementById('final-title').textContent = 'Дело раскрыто';
         document.getElementById('final-story').textContent = text;
-        document.getElementById('final-steps').textContent = window.state.step;
+        document.getElementById('final-steps').textContent = state.step;
         setLoading(false);
         showFinalScreen();
     })
@@ -372,22 +373,26 @@ ${context}
         removeLastSystemMessage();
         document.getElementById('final-title').textContent = 'Ошибка';
         document.getElementById('final-story').textContent = `❌ ${error.message}`;
-        document.getElementById('final-steps').textContent = window.state.step;
+        document.getElementById('final-steps').textContent = state.step;
         setLoading(false);
         showFinalScreen();
     });
 }
 
+// ============================================================
+// СОХРАНЕНИЕ И ЗАГРУЗКА
+// ============================================================
+
 function saveState() {
     try {
         const data = {
-            messages: window.state.messages,
-            storyId: window.state.storyId,
-            step: window.state.step,
-            isFinished: window.state.isFinished,
-            opening: window.state.opening,
-            clues: window.state.clues,
-            mystery: window.state.mystery
+            messages: state.messages,
+            storyId: state.storyId,
+            step: state.step,
+            isFinished: state.isFinished,
+            opening: state.opening,
+            clues: state.clues,
+            mystery: state.mystery
         };
         localStorage.setItem('detective_chat_state', JSON.stringify(data));
         document.getElementById('load-btn').style.display = 'block';
@@ -401,21 +406,21 @@ function loadState() {
         const data = JSON.parse(raw);
         if (!data.messages || data.messages.length === 0) return false;
 
-        window.state.messages = data.messages || [];
-        window.state.storyId = data.storyId || Date.now();
-        window.state.step = data.step || 0;
-        window.state.isFinished = data.isFinished || false;
-        window.state.opening = data.opening || '';
-        window.state.clues = data.clues || [];
-        window.state.mystery = data.mystery || '';
-        window.state.isGenerating = false;
+        state.messages = data.messages || [];
+        state.storyId = data.storyId || Date.now();
+        state.step = data.step || 0;
+        state.isFinished = data.isFinished || false;
+        state.opening = data.opening || '';
+        state.clues = data.clues || [];
+        state.mystery = data.mystery || '';
+        state.isGenerating = false;
 
-        if (window.state.isFinished) {
-            const lastMessages = window.state.messages.filter(m => m.type === 'ai');
+        if (state.isFinished) {
+            const lastMessages = state.messages.filter(m => m.type === 'ai');
             if (lastMessages.length > 0) {
                 document.getElementById('final-title').textContent = 'Дело раскрыто';
                 document.getElementById('final-story').textContent = lastMessages[lastMessages.length - 1].text;
-                document.getElementById('final-steps').textContent = window.state.step;
+                document.getElementById('final-steps').textContent = state.step;
                 showFinalScreen();
                 return true;
             }
@@ -424,14 +429,14 @@ function loadState() {
 
         const chatMessages = document.getElementById('chat-messages');
         chatMessages.innerHTML = '';
-        window.state.messages.forEach(m => {
+        state.messages.forEach(m => {
             const msg = document.createElement('div');
             msg.className = `message message-${m.type}`;
             msg.textContent = m.text;
             chatMessages.appendChild(msg);
         });
 
-        updateUI(window.state.step, 'расследование', '#34d399');
+        updateUI(state.step, 'расследование', '#34d399');
         showGameScreen();
         return true;
     } catch (e) {

@@ -184,8 +184,9 @@ body {
 
 .chat-header {
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-start;
     align-items: center;
+    gap: 8px;
     padding-bottom: 10px;
     border-bottom: 1px solid #1e1e2e;
     flex-shrink: 0;
@@ -195,6 +196,7 @@ body {
     font-size: 16px;
     font-weight: 600;
     color: #f0f0f5;
+    margin-right: auto;
 }
 
 .chat-status {
@@ -230,6 +232,26 @@ body {
 .inventory-toggle:active {
     transform: scale(0.92);
     background: #2a2a40;
+}
+
+/* ===== КНОПКА ВЫХОДА ===== */
+.exit-btn {
+    background: transparent;
+    border: none;
+    color: #555577;
+    font-size: 18px;
+    cursor: pointer;
+    padding: 4px 8px;
+    transition: color 0.2s, transform 0.2s;
+    touch-action: manipulation;
+    user-select: none;
+    order: -1;
+    line-height: 1;
+}
+
+.exit-btn:active {
+    color: #ef4444;
+    transform: scale(0.9);
 }
 
 .chat-messages {
@@ -536,6 +558,10 @@ body {
     .mode-btn {
         font-size: 14px;
         padding: 10px 8px;
+    }
+    .exit-btn {
+        font-size: 16px;
+        padding: 4px 6px;
     }
 }
 

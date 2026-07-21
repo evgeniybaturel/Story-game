@@ -268,5 +268,193 @@ ${context}
 
 Ответь ТОЛЬКО текстом (2-3 предложения). Без воды.
 `;
+    }
+
+    const apiKey = getApiKey();
+    if (!apiKey) {
+        removeLastSystemMessage();
+        document.getElementById('final-title').textContent = 'Ошибка';
+        document.getElementById('final-story').textContent = '❌ API-ключ не найден';
+        document.getElementById('final-steps').textContent = state.step;
+        showFinalScreen();
+        return;
+    }
+
+    fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+            model: 'llama-3.3-70b-versatile',
+            messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: userPrompt }
+            ],
+            temperature: 0.8,
+            max_tokens: 250
+        })
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(err => {
+                throw new Error(err.error?.message || `HTTP ${response.status}`);
+            });
+        }
+        return response.json();
+    })
+    .then(data => {
+        let text = data.choices?.[0]?.message?.content?.trim();
+        if (!text) throw new Error('Пустой ответ');
+        
+        removeLastSystemMessage();
+        document.getElementById('final-title').textContent = state.mode === 'detective' ? 'Дело раскрыто' : 'Загадка разгадана';
+        document.getElementById('final-story').textContent = text;
+        document.getElementById('final-steps').textContent = state.step;
+        setLoading(false);
+        showFinalScreen();
+    })
+    .catch(error => {
+        console.error('Финальная ошибка:', error);
+        removeLastSystemMessage();
+        document.getElementById('final-title').textContent = 'Ошибка';
+        document.getElementById('final-story').textContent = `❌ ${error.message}`;
+        document.getElementById('final-steps').textContent = state.step;
+        setLoading(false);
+        showFinalScreen();
+    });
 }
-          
+
+function saveState() {
+    try {
+        const data = {
+            messages: state.messages,
+            storyId: state.storyId,
+            step: state.step,
+            isFinished: state.isFinished,
+            opening: state.opening,
+            clues: state.clues,
+            mystery: state.mystery,
+            mode: state.mode,
+            solution: state.solution,
+            hint: state.hint,
+            genre: state.genre
+        };
+        localStorage.setItem('detective_chat_state', JSON.stringify(data));
+        document.getElementById('load-btn').style.display = 'block';
+    } catch (e) {}
+}
+
+function loadState() {
+    try {
+        const raw = localStorage.getItem('detective_chat_state');
+        if (!raw) return false;
+        const data = JSON.parse(raw);
+        if (!data.messages || data.messages.length === 0) return false;
+
+        state.messages = data.messages || [];
+        state.storyId = data.storyId || Date.now();
+        state.step = data.step || 0;
+        state.isFinished = data.isFinished || false;
+        state.opening = data.opening || '';
+        state.clues = data.clues || [];
+        state.mystery = data.mystery || '';
+        state.mode = data.mode || 'detective';
+        state.solution = data.solution || '';
+        state.hint = data.hint || '';
+        state.genre = data.genre || '';
+        state.isGenerating = false;
+
+        if (state.isFinished) {
+            const lastMessages = state.messages.filter(m => m.type === 'ai');
+            if (lastMessages.length > 0) {
+                document.getElementById('final-title').textContent = state.mode === 'detective' ? 'Дело раскрыто' : 'Загадка разгадана';
+                document.getElementById('final-story').textContent = lastMessages[lastMessages.length - 1].text;
+                document.getElementById('final-steps').textContent = state.step;
+                showFinalScreen();
+                return true;
+            }
+            return false;
+        }
+
+        const chatMessages = document.getElementById('chat-messages');
+        chatMessages.innerHTML = '';
+        state.messages.forEach(m => {
+            const msg = document.createElement('div');
+            msg.className = `message message-${m.type}`;
+            msg.textContent = m.text;
+            chatMessages.appendChild(msg);
+        });
+
+        document.getElementById('game-title').textContent = state.mode === 'detective' ? '🕵️ Дело' : '❓ Данетки';
+        updateUI(state.step, state.mode === 'detective' ? 'расследование' : 'загадка', '#34d399');
+        showGameScreen();
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
+
+// ============================================================
+// ПОДКЛЮЧЕНИЕ КНОПОК
+// ============================================================
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Выбор режима
+    document.querySelectorAll('.mode-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        });
+    });
+    
+    document.getElementById('start-btn').addEventListener('click', initGame);
+    
+    document.getElementById('load-btn').addEventListener('click', () => {
+        if (!loadState()) {
+            alert('Нет сохранённой игры');
+        }
+    });
+    
+    document.getElementById('send-btn').addEventListener('click', sendMessage);
+    
+    document.getElementById('chat-input').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            sendMessage();
+        }
+    });
+    
+    document.getElementById('restart-btn').addEventListener('click', showStartScreen);
+    
+    document.getElementById('copy-btn').addEventListener('click', async () => {
+        const title = document.getElementById('final-title').textContent;
+        const story = document.getElementById('final-story').textContent;
+        const text = `${title}\n\n${story}`;
+        try {
+            await navigator.clipboard.writeText(text);
+            const btn = document.getElementById('copy-btn');
+            btn.textContent = 'Скопировано!';
+            setTimeout(() => btn.textContent = 'Скопировать', 2000);
+        } catch {
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            ta.remove();
+            const btn = document.getElementById('copy-btn');
+            btn.textContent = 'Скопировано!';
+            setTimeout(() => btn.textContent = 'Скопировать', 2000);
+        }
+    });
+});
+
+// Автозагрузка
+if (localStorage.getItem('detective_chat_state')) {
+    document.getElementById('load-btn').style.display = 'block';
+}
+
+console.log('🕵️ Детектив на прогулке загружен');
+console.log('🤖 Использует Groq');

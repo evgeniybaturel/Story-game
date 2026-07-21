@@ -43,6 +43,11 @@ async function callGroq(messages, systemPrompt, callback) {
     const lastUserMessage = messages.filter(m => m.type === 'user').pop();
     const userInput = lastUserMessage ? lastUserMessage.text : 'Начало расследования';
 
+    // Передаём все уже найденные улики с запретом на повтор
+    const allClues = state.clues.length > 0 
+        ? `\nУЖЕ НАЙДЕННЫЕ УЛИКИ (НЕ ПОВТОРЯЙ ИХ):\n${state.clues.map((c, i) => `${i+1}. ${c}`).join('\n')}`
+        : '';
+
     const userPrompt = `
 Ты — ведущий детективной игры.
 
@@ -51,20 +56,22 @@ ${state.opening || 'Вы находите загадочный предмет н
 
 Вот что уже произошло:
 ${fullContext}
+${allClues}
 
 Сейчас игроки написали: "${userInput}"
 
 ОТВЕТЬ В ФОРМАТЕ JSON:
 {
   "text": "Твой ответ (2 предложения, коротко, по делу)",
-  "clue": "Если игрок нашёл улику — напиши её сюда (одна фраза). Если улики нет — оставь пустым"
+  "clue": "Если игрок нашёл НОВУЮ улику, которой ещё нет в списке — напиши её сюда (одна фраза). Если улики нет или она уже есть — оставь поле clue пустым."
 }
 
 ПРАВИЛА:
-- Отвечай коротко (2 предложения), по делу
-- Не расписывай, пиши как живой человек
-- Если игрок нашёл улику — укажи её в поле clue
-- Без воды
+1. Отвечай коротко (2 предложения), по делу
+2. НЕ ПОВТОРЯЙ улики, которые уже есть в списке
+3. Если игрок просто спросил "что в записке?" — не создавай новую улику, просто ответь текстом
+4. Новая улика — только когда игрок нашёл что-то НОВОЕ
+5. Без воды
 `;
 
     try {
@@ -77,7 +84,7 @@ ${fullContext}
             body: JSON.stringify({
                 model: 'llama-3.3-70b-versatile',
                 messages: [
-                    { role: 'system', content: systemPrompt || 'Ты — ведущий детективной игры. Отвечай коротко (2 предложения), по делу, без воды. Отвечай ТОЛЬКО В ФОРМАТЕ JSON.' },
+                    { role: 'system', content: systemPrompt || 'Ты — ведущий детективной игры. Отвечай коротко (2 предложения), по делу, без воды. НЕ ПОВТОРЯЙ уже найденные улики. Отвечай ТОЛЬКО В ФОРМАТЕ JSON.' },
                     { role: 'user', content: userPrompt }
                 ],
                 temperature: 0.75,
@@ -112,6 +119,11 @@ ${fullContext}
         
         let text = parsed.text || 'Продолжайте расследование.';
         let clue = parsed.clue || '';
+        
+        // Проверка: если улика уже есть — не добавляем
+        if (clue && state.clues.some(c => c.toLowerCase() === clue.toLowerCase())) {
+            clue = '';
+        }
         
         if (text.length > 250) {
             text = text.slice(0, 247) + '...';
@@ -167,6 +179,7 @@ function initGame() {
 - Опиши место, что нашли, первую зацепку
 - Коротко, без воды
 - Не используй слово "ПЕРО" и "кинотеатр"
+- УЛИКА ДОЛЖНА БЫТЬ ОДНА (не две, не три)
 `;
 
     fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -211,6 +224,8 @@ function initGame() {
         let clue = parsed.clue || '';
         
         state.opening = text;
+        
+        // Только одна улика при старте
         if (clue) {
             state.clues.push(clue);
             state.journal.push({ type: '🔍 Улика', text: clue });
@@ -254,7 +269,7 @@ function sendMessage() {
 
     state.journal.push({ type: '💬 Действие', text: text });
 
-    const systemPrompt = 'Ты — ведущий детективной игры. Отвечай коротко (2 предложения), по делу, без воды. Отвечай ТОЛЬКО В ФОРМАТЕ JSON.';
+    const systemPrompt = 'Ты — ведущий детективной игры. Отвечай коротко (2 предложения), по делу, без воды. НЕ ПОВТОРЯЙ уже найденные улики. Отвечай ТОЛЬКО В ФОРМАТЕ JSON.';
 
     callGroq(state.messages, systemPrompt, (response, clue) => {
         if (response.startsWith('❌')) {
@@ -265,9 +280,13 @@ function sendMessage() {
             return;
         }
         
+        // Добавляем только новые улики
         if (clue) {
-            state.clues.push(clue);
-            state.journal.push({ type: '🔍 Улика', text: clue });
+            const exists = state.clues.some(c => c.toLowerCase() === clue.toLowerCase());
+            if (!exists) {
+                state.clues.push(clue);
+                state.journal.push({ type: '🔍 Улика', text: clue });
+            }
         }
         
         addMessage('ai', response);
@@ -432,24 +451,20 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ============================================================
-// ПОДКЛЮЧЕНИЕ КНОПОК (после загрузки UI)
+// ПОДКЛЮЧЕНИЕ КНОПОК
 // ============================================================
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Кнопка старта
     document.getElementById('start-btn').addEventListener('click', initGame);
     
-    // Кнопка загрузки
     document.getElementById('load-btn').addEventListener('click', () => {
         if (!loadState()) {
             alert('Нет сохранённой игры');
         }
     });
     
-    // Кнопка отправки
     document.getElementById('send-btn').addEventListener('click', sendMessage);
     
-    // Enter
     document.getElementById('chat-input').addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
             e.preventDefault();
@@ -457,10 +472,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
-    // Рестарт
     document.getElementById('restart-btn').addEventListener('click', showStartScreen);
     
-    // Копирование
     document.getElementById('copy-btn').addEventListener('click', async () => {
         const title = document.getElementById('final-title').textContent;
         const story = document.getElementById('final-story').textContent;

@@ -37,7 +37,7 @@ async function callGroq(messages, systemPrompt, callback) {
                 'Authorization': `Bearer ${apiKey}`
             },
             body: JSON.stringify({
-                model: 'llama-4-maverick-17b',
+                model: 'llama-3.3-70b-versatile',
                 messages: [
                     { role: 'system', content: systemPrompt },
                     { role: 'user', content: userPrompt }

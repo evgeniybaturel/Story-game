@@ -6,71 +6,358 @@
     <title>Детектив на прогулке</title>
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
 
-    <div id="app">
+<div id="app">
 
-        <!-- СТАРТОВЫЙ ЭКРАН -->
-        <div id="start-screen">
-            <h1>Детектив на прогулке</h1>
-            <p class="sub">Выберите режим игры и начните расследование</p>
-            
-            <div class="input-group">
-                <input type="password" id="api-key" placeholder="API-ключ Groq (получить на console.groq.com)">
-                <small>Ключ хранится только в вашем браузере</small>
-            </div>
+    <!-- =========================
+         СТАРТОВЫЙ ЭКРАН
+    ========================== -->
 
-            <div class="mode-selector">
-                <button class="mode-btn active" id="mode-detective" data-mode="detective">🕵️ Детектив</button>
-                <button class="mode-btn" id="mode-danetki" data-mode="danetki">❓ Данетки</button>
-            </div>
-            
-            <button class="btn" id="start-btn">Начать расследование</button>
-            <button class="btn btn-secondary" id="load-btn" style="display:none;">Продолжить сохранённое</button>
+    <div id="start-screen">
+
+        <h1>Детектив на прогулке</h1>
+
+        <p class="sub">
+            Расследуйте дела или разгадывайте загадочные ситуации
+        </p>
+
+
+        <div class="input-group">
+
+            <input 
+                type="password" 
+                id="api-key"
+                placeholder="API-ключ Groq (console.groq.com)"
+            >
+
+            <small>
+                Ключ хранится только в вашем браузере
+            </small>
+
         </div>
 
-        <!-- ИГРОВОЙ ЭКРАН -->
-        <div id="game-screen" class="hidden">
-            <div class="chat-header">
-                <button class="exit-btn" id="exit-btn" title="Выйти на главный экран">✕</button>
-                <span class="chat-status" id="chat-status">● в процессе</span>
-                <button class="inventory-toggle" id="inventory-toggle" title="Инвентарь">📦</button>
-            </div>
 
-            <div class="chat-messages" id="chat-messages"></div>
+        <div class="mode-selector">
 
-            <div class="chat-input-area">
-                <input type="text" id="chat-input" placeholder="Напишите действие или вопрос..." autocomplete="off">
-                <button class="send-btn" id="send-btn">→</button>
-            </div>
+            <button 
+                class="mode-btn active"
+                id="mode-detective"
+                data-mode="detective">
+                🕵️ Детектив
+            </button>
+
+
+            <button 
+                class="mode-btn"
+                id="mode-danetki"
+                data-mode="danetki">
+                ❓ Данетки
+            </button>
+
         </div>
 
-        <!-- МОДАЛЬНОЕ ОКНО (ИНВЕНТАРЬ) -->
-        <div id="modal" class="modal hidden">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <span class="modal-title">📦 Инвентарь</span>
-                    <button class="modal-close" id="modal-close">✕</button>
-                </div>
-                <div class="modal-body" id="modal-body"></div>
-            </div>
-        </div>
 
-        <!-- ФИНАЛЬНЫЙ ЭКРАН -->
-        <div id="final-screen" class="hidden">
-            <div class="title" id="final-title">Дело раскрыто</div>
-            <div class="story-text" id="final-story">Текст...</div>
-            <div class="stats">
-                <div class="stat">Сообщений <span id="final-steps">0</span></div>
-            </div>
-            <button class="btn btn-success" id="copy-btn">Скопировать</button>
-            <button class="btn btn-secondary" id="restart-btn">Новое дело</button>
-        </div>
+        <button 
+            class="btn"
+            id="start-btn">
+            Начать расследование
+        </button>
+
+
+        <button 
+            class="btn btn-secondary"
+            id="load-btn"
+            style="display:none">
+            Продолжить игру
+        </button>
+
 
     </div>
 
-    <script src="api.js"></script>
-    <script src="game.js"></script>
-    <script src="ui.js"></script>
+
+
+    <!-- =========================
+         ИГРОВОЙ ЭКРАН
+    ========================== -->
+
+
+    <div id="game-screen" class="hidden">
+
+
+        <div class="chat-header">
+
+
+            <button 
+                class="exit-btn"
+                id="exit-btn">
+                ✕
+            </button>
+
+
+
+            <div class="chat-status" id="chat-status">
+                ● подготовка
+            </div>
+
+
+
+            <button
+                class="hint-btn"
+                id="hint-btn"
+                title="Получить подсказку">
+                💡
+            </button>
+
+
+
+            <button
+                class="inventory-toggle"
+                id="inventory-toggle"
+                title="Инвентарь">
+                📦
+            </button>
+
+
+        </div>
+
+
+
+
+        <!-- ИНФОРМАЦИЯ О ДЕЛЕ -->
+
+        <div class="case-panel">
+
+            <div class="case-title" id="case-title">
+                Новое дело
+            </div>
+
+
+            <div class="case-progress">
+
+                <span>
+                    Улики:
+                </span>
+
+                <strong id="clue-count">
+                    0
+                </strong>
+
+
+                <span>
+                    /
+                </span>
+
+
+                <strong id="clue-total">
+                    ?
+                </strong>
+
+            </div>
+
+
+        </div>
+
+
+
+
+        <!-- ЧАТ -->
+
+
+        <div 
+            class="chat-messages"
+            id="chat-messages">
+
+        </div>
+
+
+
+
+        <!-- ИНДИКАТОР AI -->
+
+
+        <div 
+            class="thinking hidden"
+            id="thinking">
+
+            🤖 Детектив думает<span></span>
+
+        </div>
+
+
+
+
+
+        <!-- ВВОД -->
+
+
+        <div class="chat-input-area">
+
+
+            <input
+                type="text"
+                id="chat-input"
+                placeholder="Ваш вопрос или действие..."
+                autocomplete="off"
+            >
+
+
+
+            <button
+                class="send-btn"
+                id="send-btn">
+                →
+            </button>
+
+
+        </div>
+
+
+    </div>
+
+
+
+
+
+    <!-- =========================
+         ИНВЕНТАРЬ
+    ========================== -->
+
+
+    <div 
+        id="modal"
+        class="modal hidden">
+
+
+        <div class="modal-content">
+
+
+            <div class="modal-header">
+
+
+                <span class="modal-title">
+                    📦 Улики
+                </span>
+
+
+                <button
+                    class="modal-close"
+                    id="modal-close">
+                    ✕
+                </button>
+
+
+            </div>
+
+
+            <div
+                class="modal-body"
+                id="modal-body">
+
+            </div>
+
+
+        </div>
+
+
+    </div>
+
+
+
+
+
+    <!-- =========================
+         ФИНАЛ
+    ========================== -->
+
+
+    <div 
+        id="final-screen"
+        class="hidden">
+
+
+        <div 
+            class="title"
+            id="final-title">
+
+            Дело раскрыто
+
+        </div>
+
+
+
+        <div 
+            class="story-text"
+            id="final-story">
+
+        </div>
+
+
+
+        <div class="stats">
+
+
+            <div class="stat">
+
+                Сообщений
+
+                <span id="final-steps">
+                    0
+                </span>
+
+            </div>
+
+
+
+            <div class="stat">
+
+                Улик
+
+                <span id="final-clues">
+                    0
+                </span>
+
+            </div>
+
+
+        </div>
+
+
+
+
+        <button
+            class="btn btn-success"
+            id="copy-btn">
+
+            Скопировать
+
+        </button>
+
+
+
+        <button
+            class="btn btn-secondary"
+            id="restart-btn">
+
+            Новое дело
+
+        </button>
+
+
+
+    </div>
+
+
+
+</div>
+
+
+
+<script src="api.js"></script>
+<script src="ui.js"></script>
+<script src="game.js"></script>
+
+
 </body>
 </html>
